@@ -25,7 +25,7 @@ os.makedirs(SAVE_PATH, exist_ok=True)
 
 APP_NAME    = "Groupe ADE"
 APP_SUB     = "Feuille de Temps"
-APP_VERSION = "v3.4"
+APP_VERSION = "v3.5"
 COPYRIGHT   = "© 2026 Thierry Rouillard"
 DEV_CREDIT  = "Développé par Thierry Rouillard"
 
