@@ -136,6 +136,7 @@ THEMES = {
         "PALETTE":["#4F8EF7","#34D399","#FBBF24","#A78BFA","#F472B6",
                    "#22D3EE","#FB923C","#A3E635","#F87171","#2DD4BF"],
     },
+
     "Midnight": {
         "BG":"#05050A","BG2":"#09090F","BG3":"#0E0E16",
         "CARD":"#101018","CARD2":"#17171F",
@@ -147,38 +148,131 @@ THEMES = {
         "PALETTE":["#818CF8","#4ADE80","#FCD34D","#C084FC","#F472B6",
                    "#38BDF8","#FB923C","#A3E635","#F87171","#2DD4BF"],
     },
-    "Slate": {
-        "BG":"#0F172A","BG2":"#1E293B","BG3":"#1E293B",
-        "CARD":"#1E293B","CARD2":"#334155",
-        "ACC":"#38BDF8","ACC2":"#7DD3FC","ACC3":"#0284C7","ACCD":"#0C4A6E",
-        "GREEN":"#34D399","GREEN2":"#059669",
-        "RED":"#FB7185","AMBER":"#FBBF24",
-        "TXT":"#F1F5F9","TXT2":"#94A3B8","TXT3":"#475569",
-        "MUTED":"#334155","BORDER":"#334155","BORDER2":"#475569","ROW":"#0F172A",
-        "PALETTE":["#38BDF8","#34D399","#FBBF24","#A78BFA","#F472B6",
-                   "#818CF8","#FB923C","#A3E635","#FB7185","#2DD4BF"],
+
+    "Silver": {
+        "BG":"#0B1220",
+        "BG2":"#111827",
+        "BG3":"#1F2937",
+        "CARD":"#1F2937",
+        "CARD2":"#273449",
+        "ACC":"#38BDF8",
+        "ACC2":"#7DD3FC",
+        "ACC3":"#0284C7",
+        "ACCD":"#075985",
+        "GREEN":"#34D399",
+        "GREEN2":"#059669",
+        "RED":"#FB7185",
+        "AMBER":"#FBBF24",
+        "TXT":"#F9FAFB",
+        "TXT2":"#94A3B8",
+        "TXT3":"#475569",
+        "MUTED":"#334155",
+        "BORDER":"#1F2A44",
+        "BORDER2":"#334155",
+        "ROW":"#0F172A",
+        "PALETTE":[
+            "#38BDF8","#34D399","#FBBF24","#A78BFA","#F472B6",
+            "#818CF8","#FB923C","#A3E635","#FB7185","#2DD4BF"
+        ],
     },
-    "Forest": {
-        "BG":"#071209","BG2":"#0C1A0D","BG3":"#112214",
-        "CARD":"#122114","CARD2":"#1A2E1C",
-        "ACC":"#4ADE80","ACC2":"#86EFAC","ACC3":"#16A34A","ACCD":"#14532D",
-        "GREEN":"#4ADE80","GREEN2":"#15803D",
-        "RED":"#F87171","AMBER":"#FDE047",
-        "TXT":"#ECFDF5","TXT2":"#6EE7B7","TXT3":"#2D6A45",
-        "MUTED":"#1A3320","BORDER":"#1A3320","BORDER2":"#14532D","ROW":"#08120A",
-        "PALETTE":["#4ADE80","#FDE047","#34D399","#A3E635","#86EFAC",
-                   "#22D3EE","#FB923C","#6EE7B7","#F87171","#2DD4BF"],
+
+    "Hacker man": {
+        "BG":"#0C0606",
+        "BG2":"#150A0A",
+        "BG3":"#1F1111",
+        "CARD":"#1A0E0E",
+        "CARD2":"#241414",
+        "ACC":"#EF4444",
+        "ACC2":"#FCA5A5",
+        "ACC3":"#B91C1C",
+        "ACCD":"#7F1D1D",
+        "GREEN":"#4ADE80",
+        "GREEN2":"#15803D",
+        "RED":"#F87171",
+        "AMBER":"#FCD34D",
+        "TXT":"#FFF1F1",
+        "TXT2":"#FDA4AF",
+        "TXT3":"#7F3040",
+        "MUTED":"#3B1C1C",
+        "BORDER":"#2E1515",
+        "BORDER2":"#7F1D1D",
+        "ROW":"#0E0808",
+        "PALETTE":[
+            "#EF4444","#FCA5A5","#FCD34D","#C084FC","#F472B6",
+            "#FB923C","#A3E635","#38BDF8","#4ADE80","#2DD4BF"
+        ],
     },
-    "Crimson": {
-        "BG":"#0E0808","BG2":"#160C0C","BG3":"#1C1010",
-        "CARD":"#1A0E0E","CARD2":"#241414",
-        "ACC":"#F87171","ACC2":"#FCA5A5","ACC3":"#DC2626","ACCD":"#7F1D1D",
-        "GREEN":"#4ADE80","GREEN2":"#15803D",
-        "RED":"#F87171","AMBER":"#FCD34D",
-        "TXT":"#FFF1F1","TXT2":"#FDA4AF","TXT3":"#7F3040",
-        "MUTED":"#3B1C1C","BORDER":"#2E1515","BORDER2":"#7F1D1D","ROW":"#0E0808",
-        "PALETTE":["#F87171","#FCA5A5","#FCD34D","#C084FC","#F472B6",
-                   "#FB923C","#A3E635","#38BDF8","#4ADE80","#2DD4BF"],
+    "Hackeur de Pentagone": {
+        "BG":"#040B07",
+        "BG2":"#07140D",
+        "BG3":"#0C1F15",
+
+        "CARD":"#0F2A1C",
+        "CARD2":"#143625",
+
+        "ACC":"#1FD16C",
+        "ACC2":"#4ADE80",
+        "ACC3":"#0F9F57",
+        "ACCD":"#064E36",
+
+        "GREEN":"#34D399",
+        "GREEN2":"#059669",
+
+        "RED":"#F87171",
+        "AMBER":"#FBBF24",
+
+        "TXT":"#F0FFF7",
+        "TXT2":"#8EE6C2",
+        "TXT3":"#3C7A63",
+
+        "MUTED":"#17392A",
+
+        "BORDER":"#1F4636",
+        "BORDER2":"#295A46",
+
+        "ROW":"#06130D",
+
+        "PALETTE":[
+            "#1FD16C",  # vert primaire
+            "#4ADE80",  # vert clair
+            "#2DD4BF",  # teal
+            "#38BDF8",  # bleu data
+            "#A78BFA",  # violet
+            "#FBBF24",  # amber
+            "#FB923C",  # orange
+            "#34D399",  # emerald
+            "#F87171",  # rouge
+            "#A3E635",  # lime
+            "#22D3EE",  # cyan
+            "#C084FC"   # violet clair
+        ],
+    },
+
+    "Blanc qui fait mal aux yeux (Light)": {
+        "BG":"#F4F7FB",
+        "BG2":"#E8EEF6",
+        "BG3":"#DCE5F0",
+        "CARD":"#FFFFFF",
+        "CARD2":"#F1F5F9",
+        "ACC":"#3B82F6",
+        "ACC2":"#60A5FA",
+        "ACC3":"#2563EB",
+        "ACCD":"#1E40AF",
+        "GREEN":"#10B981",
+        "GREEN2":"#059669",
+        "RED":"#EF4444",
+        "AMBER":"#F59E0B",
+        "TXT":"#0F172A",
+        "TXT2":"#475569",
+        "TXT3":"#94A3B8",
+        "MUTED":"#CBD5E1",
+        "BORDER":"#D1D9E6",
+        "BORDER2":"#E2E8F0",
+        "ROW":"#F8FAFC",
+        "PALETTE":[
+            "#3B82F6","#10B981","#F59E0B","#8B5CF6","#EC4899",
+            "#06B6D4","#F97316","#84CC16","#EF4444","#14B8A6"
+        ],
     },
 }
 
@@ -666,7 +760,7 @@ class HistoriqueDialog(QDialog):
     def _pick(self, monday): self.week_selected.emit(monday); self.accept()
 
 # ╔══════════════════════════════════════════════════════════════╗
-# ║              ParamDialog — VERSION CORRIGÉE                 ║
+# ║              ParamDialog — VERSION CORRIGÉE                  ║
 # ╚══════════════════════════════════════════════════════════════╝
 class ParamDialog(QDialog):
     saved        = pyqtSignal(dict)
