@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QScrollArea, QFrame, QProgressBar,
     QFileDialog, QMessageBox, QDialog, QSizePolicy, QGraphicsDropShadowEffect,
-    QTextEdit,
+    QTextEdit, QComboBox,
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt6.QtGui import QFont, QColor
@@ -26,7 +26,7 @@ os.makedirs(SAVE_PATH, exist_ok=True)
 
 APP_NAME    = "Groupe ADE"
 APP_SUB     = "Feuille de Temps"
-APP_VERSION = "v3.6"
+APP_VERSION = "v3.7"
 COPYRIGHT   = "© 2026 Thierry Rouillard"
 DEV_CREDIT  = "Développé par Thierry Rouillard"
 
@@ -37,7 +37,6 @@ GITHUB_VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_R
 GITHUB_RELEASE_URL = f"https://github.com/{GITHUB_USER}/{GITHUB_REPO}/releases/latest/download/FeuilleTemps_ADE.exe"
 EXE_NAME           = "FeuilleTemps_ADE.exe"
 
-# ── Comparateur de versions ───────────────────────────────────────────────────
 def _version_tuple(v: str):
     v = v.strip().lstrip("vV")
     parts = []
@@ -50,7 +49,6 @@ def _version_tuple(v: str):
 def _newer(remote: str, local: str) -> bool:
     return _version_tuple(remote) > _version_tuple(local)
 
-# ── Threads update ────────────────────────────────────────────────────────────
 class UpdateSignals(QObject):
     update_available = pyqtSignal(str, str)
     check_failed     = pyqtSignal()
@@ -88,7 +86,7 @@ class UpdateDownloader(threading.Thread):
             current_exe = self.get_current_exe()
             if not current_exe:
                 self.error_cb("Fonctionne uniquement depuis le .exe compilé."); return
-            current_dir = os.path.dirname(current_exe)
+            current_dir  = os.path.dirname(current_exe)
             current_name = os.path.basename(current_exe)
             tmp_dir = tempfile.mkdtemp(prefix="ade_update_")
             tmp_exe = os.path.join(tmp_dir, EXE_NAME)
@@ -122,22 +120,96 @@ rmdir /s /q "{tmp_dir}" 2>nul
         except Exception as ex:
             self.error_cb(str(ex))
 
+# ╔══════════════════════════════════════════════════════════════╗
+# ║                    SYSTÈME DE THÈMES                        ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+THEMES = {
+    "Dark Navy": {
+        "BG":"#080C14","BG2":"#0D1220","BG3":"#111827",
+        "CARD":"#141C2E","CARD2":"#1A2340",
+        "ACC":"#4F8EF7","ACC2":"#7EAAFF","ACC3":"#2A5FD4","ACCD":"#1A3A8A",
+        "GREEN":"#34D399","GREEN2":"#059669",
+        "RED":"#F87171","AMBER":"#FBBF24",
+        "TXT":"#EEF2FF","TXT2":"#6B7FAA","TXT3":"#3D4F72",
+        "MUTED":"#2D3A55","BORDER":"#1E2C47","BORDER2":"#263351","ROW":"#0F1629",
+        "PALETTE":["#4F8EF7","#34D399","#FBBF24","#A78BFA","#F472B6",
+                   "#22D3EE","#FB923C","#A3E635","#F87171","#2DD4BF"],
+    },
+    "Midnight": {
+        "BG":"#05050A","BG2":"#09090F","BG3":"#0E0E16",
+        "CARD":"#101018","CARD2":"#17171F",
+        "ACC":"#818CF8","ACC2":"#A5B4FC","ACC3":"#4F46E5","ACCD":"#1E1B4B",
+        "GREEN":"#4ADE80","GREEN2":"#16A34A",
+        "RED":"#F87171","AMBER":"#FCD34D",
+        "TXT":"#F1F5F9","TXT2":"#64748B","TXT3":"#2E3A52",
+        "MUTED":"#1E293B","BORDER":"#16162A","BORDER2":"#22223B","ROW":"#080810",
+        "PALETTE":["#818CF8","#4ADE80","#FCD34D","#C084FC","#F472B6",
+                   "#38BDF8","#FB923C","#A3E635","#F87171","#2DD4BF"],
+    },
+    "Slate": {
+        "BG":"#0F172A","BG2":"#1E293B","BG3":"#1E293B",
+        "CARD":"#1E293B","CARD2":"#334155",
+        "ACC":"#38BDF8","ACC2":"#7DD3FC","ACC3":"#0284C7","ACCD":"#0C4A6E",
+        "GREEN":"#34D399","GREEN2":"#059669",
+        "RED":"#FB7185","AMBER":"#FBBF24",
+        "TXT":"#F1F5F9","TXT2":"#94A3B8","TXT3":"#475569",
+        "MUTED":"#334155","BORDER":"#334155","BORDER2":"#475569","ROW":"#0F172A",
+        "PALETTE":["#38BDF8","#34D399","#FBBF24","#A78BFA","#F472B6",
+                   "#818CF8","#FB923C","#A3E635","#FB7185","#2DD4BF"],
+    },
+    "Forest": {
+        "BG":"#071209","BG2":"#0C1A0D","BG3":"#112214",
+        "CARD":"#122114","CARD2":"#1A2E1C",
+        "ACC":"#4ADE80","ACC2":"#86EFAC","ACC3":"#16A34A","ACCD":"#14532D",
+        "GREEN":"#4ADE80","GREEN2":"#15803D",
+        "RED":"#F87171","AMBER":"#FDE047",
+        "TXT":"#ECFDF5","TXT2":"#6EE7B7","TXT3":"#2D6A45",
+        "MUTED":"#1A3320","BORDER":"#1A3320","BORDER2":"#14532D","ROW":"#08120A",
+        "PALETTE":["#4ADE80","#FDE047","#34D399","#A3E635","#86EFAC",
+                   "#22D3EE","#FB923C","#6EE7B7","#F87171","#2DD4BF"],
+    },
+    "Crimson": {
+        "BG":"#0E0808","BG2":"#160C0C","BG3":"#1C1010",
+        "CARD":"#1A0E0E","CARD2":"#241414",
+        "ACC":"#F87171","ACC2":"#FCA5A5","ACC3":"#DC2626","ACCD":"#7F1D1D",
+        "GREEN":"#4ADE80","GREEN2":"#15803D",
+        "RED":"#F87171","AMBER":"#FCD34D",
+        "TXT":"#FFF1F1","TXT2":"#FDA4AF","TXT3":"#7F3040",
+        "MUTED":"#3B1C1C","BORDER":"#2E1515","BORDER2":"#7F1D1D","ROW":"#0E0808",
+        "PALETTE":["#F87171","#FCA5A5","#FCD34D","#C084FC","#F472B6",
+                   "#FB923C","#A3E635","#38BDF8","#4ADE80","#2DD4BF"],
+    },
+}
+
+# ── Variables globales du thème actif ─────────────────────────────────────────
+BG=BG2=BG3=CARD=CARD2=ACC=ACC2=ACC3=ACCD=GREEN=GREEN2=RED=AMBER=""
+TXT=TXT2=TXT3=MUTED=BORDER=BORDER2=ROW=""
+PALETTE: list = []
+
+def apply_theme(name: str):
+    """Applique les variables de thème globalement."""
+    global BG,BG2,BG3,CARD,CARD2,ACC,ACC2,ACC3,ACCD,GREEN,GREEN2,RED,AMBER
+    global TXT,TXT2,TXT3,MUTED,BORDER,BORDER2,ROW,PALETTE
+    t = THEMES.get(name, THEMES["Dark Navy"])
+    BG=t["BG"]; BG2=t["BG2"]; BG3=t["BG3"]
+    CARD=t["CARD"]; CARD2=t["CARD2"]
+    ACC=t["ACC"]; ACC2=t["ACC2"]; ACC3=t["ACC3"]; ACCD=t["ACCD"]
+    GREEN=t["GREEN"]; GREEN2=t["GREEN2"]
+    RED=t["RED"]; AMBER=t["AMBER"]
+    TXT=t["TXT"]; TXT2=t["TXT2"]; TXT3=t["TXT3"]
+    MUTED=t["MUTED"]; BORDER=t["BORDER"]; BORDER2=t["BORDER2"]; ROW=t["ROW"]
+    PALETTE=list(t["PALETTE"])
+
+apply_theme("Dark Navy")  # thème par défaut
+
 # ── Constantes UI ─────────────────────────────────────────────────────────────
 JOURS   = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"]
 MOIS_FR = {1:"Janvier",2:"Février",3:"Mars",4:"Avril",5:"Mai",6:"Juin",
            7:"Juillet",8:"Août",9:"Septembre",10:"Octobre",11:"Novembre",12:"Décembre"}
-PALETTE = ["#4F8EF7","#34D399","#FBBF24","#A78BFA","#F472B6",
-           "#22D3EE","#FB923C","#A3E635","#F87171","#2DD4BF"]
 
-BG      = "#080C14"; BG2 = "#0D1220"; BG3 = "#111827"
-CARD    = "#141C2E"; CARD2 = "#1A2340"
-ACC     = "#4F8EF7"; ACC2 = "#7EAAFF"; ACC3 = "#2A5FD4"; ACCD = "#1A3A8A"
-GREEN   = "#34D399"; GREEN2 = "#059669"
-RED     = "#F87171"; AMBER = "#FBBF24"
-TXT     = "#EEF2FF"; TXT2 = "#6B7FAA"; TXT3 = "#3D4F72"
-MUTED   = "#2D3A55"; BORDER = "#1E2C47"; BORDER2 = "#263351"; ROW = "#0F1629"
-
-SS_BASE = f"""
+def ss_base():
+    return f"""
     QWidget {{ background:{BG}; color:{TXT}; font-family:'Segoe UI'; font-size:13px; }}
     QScrollBar:vertical {{ background:{BG2}; width:5px; border-radius:3px; }}
     QScrollBar::handle:vertical {{ background:{BORDER2}; border-radius:3px; min-height:24px; }}
@@ -145,6 +217,11 @@ SS_BASE = f"""
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height:0; }}
     QScrollBar:horizontal {{ height:0; }}
     QToolTip {{ background:{CARD2}; color:{TXT}; border:1px solid {ACC3}; padding:5px 8px; border-radius:6px; font-size:12px; }}
+    QComboBox {{ background:{CARD}; color:{TXT}; border:1px solid {BORDER}; border-radius:7px; padding:0 10px; font-size:12px; min-height:32px; }}
+    QComboBox:hover {{ border-color:{BORDER2}; }}
+    QComboBox:focus {{ border-color:{ACC}; }}
+    QComboBox::drop-down {{ border:none; width:20px; }}
+    QComboBox QAbstractItemView {{ background:{CARD2}; color:{TXT}; border:1px solid {BORDER2}; selection-background-color:{ACC3}; }}
 """
 
 # ── Helpers data ──────────────────────────────────────────────────────────────
@@ -187,21 +264,22 @@ def saved_weeks():
 def load_settings():
     try:
         with open(SETTINGS_FILE, "r", encoding="utf-8") as f: return json.load(f)
-    except: return {"employer":"", "email_dest":"", "email_cc":""}
+    except: return {"employer":"", "email_dest":"", "email_cc":"", "theme":"Dark Navy"}
 
 def write_settings(s):
     with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
         json.dump(s, f, ensure_ascii=False, indent=2)
 
-def glow(widget, color=ACC, radius=16):
+def glow(widget, color, radius=16):
     fx = QGraphicsDropShadowEffect()
     fx.setBlurRadius(radius); fx.setColor(QColor(color)); fx.setOffset(0,0)
     widget.setGraphicsEffect(fx)
 
 # ── Widget helpers ────────────────────────────────────────────────────────────
-def lbl(text, size=12, bold=False, color=TXT):
+def lbl(text, size=12, bold=False, color=None):
+    c = color if color else TXT
     l = QLabel(text); f = QFont("Segoe UI", size); f.setBold(bold)
-    l.setFont(f); l.setStyleSheet(f"color:{color}; background:transparent;")
+    l.setFont(f); l.setStyleSheet(f"color:{c}; background:transparent;")
     return l
 
 def styled_entry(placeholder="", width=None, height=32):
@@ -233,6 +311,11 @@ def sidebar_btn(text):
         QPushButton:pressed {{ background:{ACCD}; }}
     """)
     return b
+
+def card_frame(radius=12):
+    f = QFrame()
+    f.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-radius:{radius}px;")
+    return f
 
 # ── LogoWidget ────────────────────────────────────────────────────────────────
 class LogoWidget(QFrame):
@@ -323,11 +406,6 @@ class AutoEntry(QLineEdit):
             self._suggestion = ""; event.accept(); return
         super().keyPressEvent(event)
 
-_DUR_ON  = f"color:{ACC2}; background:transparent; font-weight:700; font-size:12px;"
-_DUR_OFF = f"color:{MUTED}; background:transparent; font-weight:600; font-size:12px;"
-
-# ── Colonnes header — NOUVELLE COLONNE TÂCHE ─────────────────────────────────
-# (Date, Début, Fin, Tâche, Projet, Client/Desc, Durée, Suppr)
 _COL_HDR = [("Date",100),("Début",72),("Fin",72),("Tâche",140),("Projet",150),("Client / Description",0),("Durée",64),("",28)]
 
 # ── RowWidget ─────────────────────────────────────────────────────────────────
@@ -339,31 +417,25 @@ class RowWidget(QWidget):
         self.jour = jour; self.row_idx = row_idx; self.parent_day = parent_day
         self.setFixedHeight(44)
         self.setStyleSheet(f"background:{ROW if row_idx%2==0 else CARD}; border:none;")
-
         lay = QHBoxLayout(self); lay.setContentsMargins(10,0,8,0); lay.setSpacing(5)
-
         self.date_lbl = lbl("", 10, color=TXT3); self.date_lbl.setFixedWidth(100); lay.addWidget(self.date_lbl)
-
         self.start  = styled_entry("08:00", 72)
         self.end    = styled_entry("16:30", 72)
-        self.tache  = AutoEntry("tache",  "Tâche...",  140)   # ← nouvelle colonne
+        self.tache  = AutoEntry("tache",  "Tâche...",  140)
         self.projet = AutoEntry("projet", "Projet...", 150)
         self.desc   = AutoEntry("desc",   "Client lié au projet...")
         self.desc.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
         self.dur_lbl = QLabel("–"); self.dur_lbl.setFixedWidth(64)
-        self.dur_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter); self.dur_lbl.setStyleSheet(_DUR_OFF)
-
+        self.dur_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.dur_lbl.setStyleSheet(f"color:{MUTED}; background:transparent; font-weight:600; font-size:12px;")
         self.del_btn = QPushButton("✕"); self.del_btn.setFixedSize(26,26)
         self.del_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.del_btn.setStyleSheet(f"""
             QPushButton {{ background:{CARD2}; color:{TXT3}; border:1px solid {BORDER}; border-radius:6px; font-size:10px; font-weight:600; }}
             QPushButton:hover {{ background:{RED}; color:white; border-color:{RED}; }}
         """)
-
         for w in (self.start, self.end, self.tache, self.projet, self.desc, self.dur_lbl, self.del_btn):
             lay.addWidget(w)
-
         self.start.textChanged.connect(self._on_time)
         self.end.textChanged.connect(self._on_time)
         self.tache.textChanged.connect(self.changed)
@@ -376,12 +448,15 @@ class RowWidget(QWidget):
 
     def _on_time(self):
         h = calc_h(self.start.text(), self.end.text())
-        self.dur_lbl.setText(fmt_h(h) if h else "–")
-        self.dur_lbl.setStyleSheet(_DUR_ON if h else _DUR_OFF)
+        if h:
+            self.dur_lbl.setText(fmt_h(h))
+            self.dur_lbl.setStyleSheet(f"color:{ACC2}; background:transparent; font-weight:700; font-size:12px;")
+        else:
+            self.dur_lbl.setText("–")
+            self.dur_lbl.setStyleSheet(f"color:{MUTED}; background:transparent; font-weight:600; font-size:12px;")
         self.changed.emit()
 
     def _reg(self): AutoCompleteRegistry.add(self.projet.text(), self.tache.text(), self.desc.text())
-
     def set_date(self, d): self.date_lbl.setText(d.strftime("%Y-%m-%d"))
 
     def get_data(self):
@@ -405,7 +480,8 @@ class RowWidget(QWidget):
         for field in (self.start, self.end):
             field.blockSignals(True); field.clear(); field.blockSignals(False)
         self.tache.clear(); self.projet.clear(); self.desc.clear()
-        self.dur_lbl.setText("–"); self.dur_lbl.setStyleSheet(_DUR_OFF)
+        self.dur_lbl.setText("–")
+        self.dur_lbl.setStyleSheet(f"color:{MUTED}; background:transparent; font-weight:600; font-size:12px;")
 
 # ── DayCard ───────────────────────────────────────────────────────────────────
 class DayCard(QFrame):
@@ -415,10 +491,7 @@ class DayCard(QFrame):
         super().__init__()
         self.jour = jour; self.idx = idx; self.rows = []; self.monday = None
         self.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-radius:14px;")
-
         outer = QVBoxLayout(self); outer.setContentsMargins(0,0,0,0); outer.setSpacing(0)
-
-        # Header card
         hdr = QFrame(); hdr.setFixedHeight(50)
         hdr.setStyleSheet(f"""
             background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {BG2},stop:1 {CARD});
@@ -445,8 +518,6 @@ class DayCard(QFrame):
         """)
         add_btn.clicked.connect(self.add_row); hl.addWidget(add_btn)
         outer.addWidget(hdr)
-
-        # Col headers
         ch = QFrame(); ch.setStyleSheet(f"background:{CARD2}; border:none;"); ch.setFixedHeight(26)
         cl = QHBoxLayout(ch); cl.setContentsMargins(10,0,8,0); cl.setSpacing(5)
         for txt, w in _COL_HDR:
@@ -455,7 +526,6 @@ class DayCard(QFrame):
             else: l.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             cl.addWidget(l)
         outer.addWidget(ch)
-
         self.rows_container = QWidget(); self.rows_container.setStyleSheet("background:transparent; border:none;")
         self.rows_layout = QVBoxLayout(self.rows_container)
         self.rows_layout.setContentsMargins(0,0,0,0); self.rows_layout.setSpacing(0)
@@ -527,9 +597,8 @@ class HistoriqueDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
         self.setWindowTitle("Historique — Groupe ADE"); self.setFixedSize(480,560)
-        self.setStyleSheet(SS_BASE + f"QDialog {{ background:{BG}; }}")
+        self.setStyleSheet(ss_base() + f"QDialog {{ background:{BG}; }}")
         lay = QVBoxLayout(self); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
-
         hdr = QFrame(); hdr.setFixedHeight(60)
         hdr.setStyleSheet(f"background:{BG2}; border-bottom:1px solid {BORDER};")
         hl = QHBoxLayout(hdr); hl.setContentsMargins(20,0,20,0)
@@ -538,7 +607,6 @@ class HistoriqueDialog(QDialog):
         tc.addWidget(lbl("Historique",14,bold=True))
         tc.addWidget(lbl(f"Toutes les semaines enregistrées  ·  {COPYRIGHT}",10,color=TXT2))
         hl.addLayout(tc); hl.addStretch(); lay.addWidget(hdr)
-
         sf = QFrame()
         sf.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-radius:9px; margin:10px 14px 4px 14px;")
         sl = QHBoxLayout(sf); sl.setContentsMargins(10,4,10,4)
@@ -546,14 +614,12 @@ class HistoriqueDialog(QDialog):
         self.search = QLineEdit(); self.search.setPlaceholderText("Rechercher une semaine...")
         self.search.setStyleSheet(f"background:transparent; border:none; color:{TXT}; font-size:12px;")
         self.search.textChanged.connect(self._refresh); sl.addWidget(self.search); lay.addWidget(sf)
-
         scroll = QScrollArea(); scroll.setWidgetResizable(True)
         scroll.setStyleSheet(f"QScrollArea {{ border:none; background:{BG}; }} QWidget {{ background:{BG}; }}")
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.list_widget = QWidget(); self.list_layout = QVBoxLayout(self.list_widget)
         self.list_layout.setContentsMargins(14,6,14,14); self.list_layout.setSpacing(5)
         self.list_layout.addStretch(); scroll.setWidget(self.list_widget); lay.addWidget(scroll)
-
         foot = QFrame(); foot.setFixedHeight(28)
         foot.setStyleSheet(f"background:{BG2}; border-top:1px solid {BORDER};")
         fl = QHBoxLayout(foot); fl.setContentsMargins(14,0,14,0); fl.addStretch()
@@ -599,88 +665,180 @@ class HistoriqueDialog(QDialog):
 
     def _pick(self, monday): self.week_selected.emit(monday); self.accept()
 
-# ── ParamDialog ───────────────────────────────────────────────────────────────
+# ╔══════════════════════════════════════════════════════════════╗
+# ║              ParamDialog — VERSION CORRIGÉE                 ║
+# ╚══════════════════════════════════════════════════════════════╝
 class ParamDialog(QDialog):
-    saved = pyqtSignal(dict)
+    saved        = pyqtSignal(dict)
+    theme_changed = pyqtSignal(str)
 
     def __init__(self, parent, settings):
         super().__init__(parent)
-        self.s = settings
-        self.setWindowTitle("Paramètres — Groupe ADE"); self.setFixedSize(460,400)
-        self.setStyleSheet(SS_BASE + f"QDialog {{ background:{BG}; }}")
-        lay = QVBoxLayout(self); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
+        self.s = dict(settings)
+        self.setWindowTitle("Paramètres — Groupe ADE")
+        self.setFixedSize(520, 580)
+        self.setStyleSheet(ss_base() + f"QDialog {{ background:{BG}; }}")
 
-        hdr = QFrame(); hdr.setFixedHeight(60)
+        root = QVBoxLayout(self); root.setContentsMargins(0,0,0,0); root.setSpacing(0)
+
+        # ── Header ────────────────────────────────────────────────────────────
+        hdr = QFrame(); hdr.setFixedHeight(64)
         hdr.setStyleSheet(f"background:{BG2}; border-bottom:1px solid {BORDER};")
-        hl = QHBoxLayout(hdr); hl.setContentsMargins(20,0,20,0)
-        hl.addWidget(QLabel("⚙️")); hl.addSpacing(8)
-        tc = QVBoxLayout(); tc.setSpacing(0)
+        hl = QHBoxLayout(hdr); hl.setContentsMargins(20,0,20,0); hl.setSpacing(12)
+        ico_lbl = QLabel("⚙️"); ico_lbl.setStyleSheet("font-size:22px; background:transparent;")
+        hl.addWidget(ico_lbl)
+        tc = QVBoxLayout(); tc.setSpacing(2)
         tc.addWidget(lbl("Paramètres",14,bold=True))
-        tc.addWidget(lbl("Configuration de l'application",10,color=TXT2))
-        hl.addLayout(tc); hl.addStretch(); lay.addWidget(hdr)
+        tc.addWidget(lbl(f"Groupe ADE  ·  {APP_VERSION}",10,color=TXT2))
+        hl.addLayout(tc); hl.addStretch()
+        root.addWidget(hdr)
 
+        # ── Scrollable body ───────────────────────────────────────────────────
+        scroll = QScrollArea(); scroll.setWidgetResizable(True)
+        scroll.setStyleSheet(f"QScrollArea {{ border:none; background:{BG}; }}")
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         body = QWidget(); body.setStyleSheet(f"background:{BG};")
-        bl = QVBoxLayout(body); bl.setContentsMargins(20,18,20,18); bl.setSpacing(12)
+        bl = QVBoxLayout(body); bl.setContentsMargins(20,16,20,16); bl.setSpacing(14)
+        scroll.setWidget(body); root.addWidget(scroll, 1)
 
-        # Bloc employé
-        frm1 = QFrame(); frm1.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-radius:12px;")
-        f1l = QVBoxLayout(frm1); f1l.setContentsMargins(14,12,14,14); f1l.setSpacing(6)
-        f1l.addWidget(lbl("👤  Nom de l'employé",10,bold=True,color=TXT2))
-        self.emp = styled_entry("Votre nom complet", height=34)
-        self.emp.setText(settings.get("employer","")); f1l.addWidget(self.emp); bl.addWidget(frm1)
+        # ── Section 1 : Employé ───────────────────────────────────────────────
+        bl.addWidget(self._section_header("👤", "Identité de l'employé"))
+        frm1 = card_frame()
+        f1l = QVBoxLayout(frm1); f1l.setContentsMargins(16,14,16,16); f1l.setSpacing(6)
+        f1l.addWidget(lbl("Nom complet",9,color=TXT3))
+        self.emp = styled_entry("Votre nom complet", height=36)
+        self.emp.setText(self.s.get("employer",""))
+        f1l.addWidget(self.emp)
+        f1l.addWidget(lbl("Ce nom apparaîtra sur les feuilles exportées en PDF.",9,color=TXT3))
+        bl.addWidget(frm1)
 
-        # Bloc courriel
-        frm2 = QFrame(); frm2.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-radius:12px;")
-        f2l = QVBoxLayout(frm2); f2l.setContentsMargins(14,12,14,14); f2l.setSpacing(8)
+        # ── Section 2 : Courriel ──────────────────────────────────────────────
+        bl.addWidget(self._section_header("✉️", "Envoi par courriel"))
+        frm2 = card_frame()
+        f2l = QVBoxLayout(frm2); f2l.setContentsMargins(16,14,16,16); f2l.setSpacing(10)
 
-        eh = QHBoxLayout()
-        eh.addWidget(lbl("✉️  Envoi par courriel",10,bold=True,color=TXT2)); eh.addStretch()
-        eh.addWidget(lbl("Bouton « Envoyer »",9,color=TXT3)); f2l.addLayout(eh)
+        f2l.addWidget(lbl("Destinataire — champ « À : »",9,color=TXT3))
+        self.email_dest = styled_entry("superviseur@groupeade.com", height=36)
+        self.email_dest.setText(self.s.get("email_dest","")); f2l.addWidget(self.email_dest)
 
-        f2l.addWidget(lbl("Destinataire (À :)",9,color=TXT3))
-        self.email_dest = styled_entry("superviseur@groupeade.com", height=34)
-        self.email_dest.setText(settings.get("email_dest","")); f2l.addWidget(self.email_dest)
+        f2l.addWidget(lbl("Copie conforme — champ « CC : »  (optionnel)",9,color=TXT3))
+        self.email_cc = styled_entry("rh@groupeade.com  ou  laisser vide", height=36)
+        self.email_cc.setText(self.s.get("email_cc","")); f2l.addWidget(self.email_cc)
 
-        f2l.addWidget(lbl("Copie conforme (CC :)  — optionnel",9,color=TXT3))
-        self.email_cc = styled_entry("rh@groupeade.com  ou  laisser vide", height=34)
-        self.email_cc.setText(settings.get("email_cc","")); f2l.addWidget(self.email_cc)
+        hint = lbl("💡 Ces adresses sont pré-remplies dans la fenêtre d'envoi et modifiables à chaque fois.",9,color=TXT3)
+        hint.setWordWrap(True); f2l.addWidget(hint)
         bl.addWidget(frm2)
 
-        save_btn = QPushButton("💾  Enregistrer les paramètres"); save_btn.setFixedHeight(42)
+        # ── Section 3 : Thème ────────────────────────────────────────────────
+        bl.addWidget(self._section_header("🎨", "Thème d'affichage"))
+        frm3 = card_frame()
+        f3l = QVBoxLayout(frm3); f3l.setContentsMargins(16,14,16,16); f3l.setSpacing(10)
+
+        f3l.addWidget(lbl("Choisir un thème  (appliqué immédiatement, sans redémarrage)",9,color=TXT3))
+
+        # Combo thème
+        self.theme_combo = QComboBox()
+        for name in THEMES:
+            self.theme_combo.addItem(name)
+        cur = self.s.get("theme","Dark Navy")
+        idx = self.theme_combo.findText(cur)
+        if idx >= 0: self.theme_combo.setCurrentIndex(idx)
+        self.theme_combo.currentTextChanged.connect(self._preview_theme)
+        f3l.addWidget(self.theme_combo)
+
+        # Swatches visuels
+        self.swatch_row = QHBoxLayout(); self.swatch_row.setSpacing(6)
+        self._build_swatches()
+        f3l.addLayout(self.swatch_row)
+
+        note = lbl("⚠️ Le thème n'affecte pas le rendu PDF — celui-ci est toujours en mode Dark Navy ADE.",9,color=AMBER)
+        note.setWordWrap(True); f3l.addWidget(note)
+        bl.addWidget(frm3)
+        bl.addStretch()
+
+        # ── Bouton Enregistrer ────────────────────────────────────────────────
+        foot_widget = QWidget(); foot_widget.setStyleSheet(f"background:{BG2}; border-top:1px solid {BORDER};")
+        fw = QHBoxLayout(foot_widget); fw.setContentsMargins(20,10,20,10); fw.setSpacing(10)
+        fw.addWidget(lbl(f"{DEV_CREDIT}  ·  {COPYRIGHT}",9,color=TXT3)); fw.addStretch()
+
+        cancel_btn = QPushButton("Annuler"); cancel_btn.setFixedHeight(38); cancel_btn.setFixedWidth(100)
+        cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        cancel_btn.setStyleSheet(f"""
+            QPushButton {{ background:{CARD2}; color:{TXT2}; border:1px solid {BORDER}; border-radius:9px; font-size:12px; }}
+            QPushButton:hover {{ background:{CARD}; color:{TXT}; }}
+        """)
+        cancel_btn.clicked.connect(self.reject)
+
+        save_btn = QPushButton("💾  Enregistrer"); save_btn.setFixedHeight(38); save_btn.setFixedWidth(140)
         save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         save_btn.setStyleSheet(f"""
             QPushButton {{ background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {ACC3},stop:1 {ACC});
-                          color:white; border:none; border-radius:10px; font-size:13px; font-weight:600; }}
+                          color:white; border:none; border-radius:9px; font-size:13px; font-weight:600; }}
             QPushButton:hover {{ background:{ACC}; }}
         """)
-        save_btn.clicked.connect(self._save); bl.addWidget(save_btn)
-        lay.addWidget(body)
+        save_btn.clicked.connect(self._save)
+        fw.addWidget(cancel_btn); fw.addWidget(save_btn)
+        root.addWidget(foot_widget)
 
-        foot = QFrame(); foot.setFixedHeight(28)
-        foot.setStyleSheet(f"background:{BG2}; border-top:1px solid {BORDER};")
-        fl2 = QHBoxLayout(foot); fl2.setContentsMargins(14,0,14,0); fl2.addStretch()
-        fl2.addWidget(lbl(f"{DEV_CREDIT}  ·  {COPYRIGHT}",9,color=TXT3)); lay.addWidget(foot)
+    def _section_header(self, icon, title):
+        w = QWidget(); w.setStyleSheet("background:transparent;")
+        hl = QHBoxLayout(w); hl.setContentsMargins(0,4,0,0); hl.setSpacing(6)
+        hl.addWidget(QLabel(icon))
+        hl.addWidget(lbl(title, 11, bold=True))
+        sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet(f"color:{BORDER}; background:{BORDER};"); sep.setFixedHeight(1)
+        hl.addWidget(sep, 1); return w
+
+    def _build_swatches(self):
+        # Vider les swatches existants
+        while self.swatch_row.count():
+            item = self.swatch_row.takeAt(0)
+            if item.widget(): item.widget().deleteLater()
+        cur = self.theme_combo.currentText()
+        for name, tdata in THEMES.items():
+            btn = QPushButton()
+            btn.setFixedSize(36, 28)
+            btn.setToolTip(name)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            acc = tdata["ACC"]; bg = tdata["BG2"]; card = tdata["CARD"]
+            border = "2px solid white" if name == cur else f"1px solid {tdata['BORDER2']}"
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 {bg},stop:0.5 {card},stop:1 {acc});
+                    border:{border}; border-radius:6px;
+                }}
+                QPushButton:hover {{ border:2px solid {acc}; }}
+            """)
+            btn.clicked.connect(lambda _, n=name: self._select_theme(n))
+            self.swatch_row.addWidget(btn)
+        self.swatch_row.addStretch()
+
+    def _select_theme(self, name):
+        idx = self.theme_combo.findText(name)
+        if idx >= 0: self.theme_combo.setCurrentIndex(idx)
+
+    def _preview_theme(self, name):
+        apply_theme(name)
+        self.s["theme"] = name
+        self.theme_changed.emit(name)
+        self._build_swatches()
 
     def _save(self):
-        self.s["employer"]   = self.emp.text()
+        self.s["employer"]   = self.emp.text().strip()
         self.s["email_dest"] = self.email_dest.text().strip()
         self.s["email_cc"]   = self.email_cc.text().strip()
+        self.s["theme"]      = self.theme_combo.currentText()
         self.saved.emit(self.s); self.accept()
 
 # ── EnvoiDialog ───────────────────────────────────────────────────────────────
 class EnvoiDialog(QDialog):
-    """Prévisualisation courriel — ouvre le client mail par défaut avec mailto:"""
-
     def __init__(self, parent, employer, week_lbl, total_h, pdf_path, settings):
         super().__init__(parent)
         self.pdf_path = pdf_path; self.settings = settings
         self.setWindowTitle("Envoyer la feuille de temps — Groupe ADE")
         self.setFixedSize(560, 630)
-        self.setStyleSheet(SS_BASE + f"QDialog {{ background:{BG}; }}")
-
+        self.setStyleSheet(ss_base() + f"QDialog {{ background:{BG}; }}")
         lay = QVBoxLayout(self); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
-
-        # Header
         hdr = QFrame(); hdr.setFixedHeight(62)
         hdr.setStyleSheet(f"background:{BG2}; border-bottom:1px solid {BORDER};")
         hl = QHBoxLayout(hdr); hl.setContentsMargins(20,0,20,0)
@@ -690,12 +848,8 @@ class EnvoiDialog(QDialog):
         tc.addWidget(lbl("Envoyer la feuille de temps",14,bold=True))
         tc.addWidget(lbl(f"Semaine du {week_lbl}",10,color=TXT2))
         hl.addLayout(tc); hl.addStretch(); lay.addWidget(hdr)
-
-        # Corps
         body = QWidget(); body.setStyleSheet(f"background:{BG};")
         bl = QVBoxLayout(body); bl.setContentsMargins(20,16,20,16); bl.setSpacing(10)
-
-        # Champs À / CC / Objet
         ff = QFrame(); ff.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-radius:12px;")
         ffl = QVBoxLayout(ff); ffl.setContentsMargins(14,12,14,14); ffl.setSpacing(8)
 
@@ -709,8 +863,6 @@ class EnvoiDialog(QDialog):
         self.cc_entry   = addr_row("CC :",   "optionnel",                  settings.get("email_cc",""))
         self.subj_entry = addr_row("Objet :", "",                          f"Feuille de temps — {employer} — Semaine du {week_lbl}")
         bl.addWidget(ff)
-
-        # Message
         bl.addWidget(lbl("Message :",10,bold=True,color=TXT2))
         self.msg_edit = QTextEdit(); self.msg_edit.setFixedHeight(175)
         self.msg_edit.setStyleSheet(f"""
@@ -719,29 +871,17 @@ class EnvoiDialog(QDialog):
             QTextEdit:focus {{ border-color:{ACC}; }}
         """)
         self.msg_edit.setPlainText(
-            f"Bonjour,\n\n"
-            f"Veuillez trouver ci-joint ma feuille de temps pour la semaine du {week_lbl}.\n\n"
-            f"Total des heures : {total_h}\n\n"
-            f"Cordialement,\n{employer}"
+            f"Bonjour,\n\nVeuillez trouver ci-joint ma feuille de temps pour la semaine du {week_lbl}.\n\n"
+            f"Total des heures : {total_h}\n\nCordialement,\n{employer}"
         )
         bl.addWidget(self.msg_edit)
-
-        # Pièce jointe
         att_row = QHBoxLayout(); att_row.setSpacing(8)
         att_row.addWidget(QLabel("📎"))
         fname = os.path.basename(pdf_path) if pdf_path and os.path.exists(pdf_path) else None
-        if fname:
-            att_lbl = lbl(fname, 10, color=TXT2)
-        else:
-            att_lbl = lbl("PDF non encore généré — sera créé automatiquement", 10, color=AMBER)
+        att_lbl = lbl(fname, 10, color=TXT2) if fname else lbl("PDF non encore généré — sera créé automatiquement", 10, color=AMBER)
         att_row.addWidget(att_lbl); att_row.addStretch(); bl.addLayout(att_row)
-
-        # Hint
-        hint = lbl("💡 Votre client de messagerie s'ouvrira avec le courriel prêt.\n"
-                   "    Glissez-déposez le PDF dans le courriel avant d'envoyer.", 9, color=TXT3)
+        hint = lbl("💡 Votre client de messagerie s'ouvrira avec le courriel prêt.\n    Glissez-déposez le PDF dans le courriel avant d'envoyer.", 9, color=TXT3)
         hint.setWordWrap(True); bl.addWidget(hint)
-
-        # Boutons
         btn_row = QHBoxLayout(); btn_row.setSpacing(10)
         cancel_btn = QPushButton("Annuler"); cancel_btn.setFixedHeight(40)
         cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -750,84 +890,74 @@ class EnvoiDialog(QDialog):
             QPushButton:hover {{ background:{CARD}; color:{TXT}; }}
         """)
         cancel_btn.clicked.connect(self.reject)
-
         self.send_btn = QPushButton("✉️  Ouvrir dans mon client mail")
         self.send_btn.setFixedHeight(40); self.send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.send_btn.setStyleSheet(f"""
-            QPushButton {{
-                background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {ACC3},stop:1 {ACC});
-                color:white; border:none; border-radius:9px; font-size:13px; font-weight:600;
-            }}
+            QPushButton {{ background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {ACC3},stop:1 {ACC});
+                          color:white; border:none; border-radius:9px; font-size:13px; font-weight:600; }}
             QPushButton:hover {{ background:{ACC}; }}
         """)
         self.send_btn.clicked.connect(self._open_mail)
         btn_row.addWidget(cancel_btn); btn_row.addWidget(self.send_btn, 1); bl.addLayout(btn_row)
         lay.addWidget(body)
-
         foot = QFrame(); foot.setFixedHeight(28)
         foot.setStyleSheet(f"background:{BG2}; border-top:1px solid {BORDER};")
         fl = QHBoxLayout(foot); fl.setContentsMargins(14,0,14,0); fl.addStretch()
         fl.addWidget(lbl(f"{DEV_CREDIT}  ·  {COPYRIGHT}",9,color=TXT3)); lay.addWidget(foot)
 
     def _open_mail(self):
-        to   = self.to_entry.text().strip()
-        cc   = self.cc_entry.text().strip()
-        subj = self.subj_entry.text().strip()
-        body = self.msg_edit.toPlainText().strip()
-
+        to = self.to_entry.text().strip(); cc = self.cc_entry.text().strip()
+        subj = self.subj_entry.text().strip(); body = self.msg_edit.toPlainText().strip()
         if not to:
-            QMessageBox.warning(self, "Destinataire manquant",
-                "Veuillez entrer une adresse dans le champ « À ».")
+            QMessageBox.warning(self, "Destinataire manquant", "Veuillez entrer une adresse dans le champ « À ».")
             self.to_entry.setFocus(); return
-
-        # Sauvegarder les adresses pour la prochaine fois
-        self.settings["email_dest"] = to
-        self.settings["email_cc"]   = cc
+        self.settings["email_dest"] = to; self.settings["email_cc"] = cc
         write_settings(self.settings)
-
-        # Construire l'URI mailto:
         params = {"subject": subj, "body": body}
         if cc: params["cc"] = cc
         query      = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
         mailto_uri = f"mailto:{urllib.parse.quote(to)}?{query}"
-
         try:
             if sys.platform == "win32":
                 os.startfile(mailto_uri)
-                # Ouvrir l'explorateur sur le dossier du PDF pour faciliter le glisser-déposer
                 if self.pdf_path and os.path.exists(self.pdf_path):
-                    subprocess.Popen(["explorer", "/select,", self.pdf_path],
-                                     creationflags=subprocess.CREATE_NO_WINDOW)
+                    subprocess.Popen(["explorer", "/select,", self.pdf_path], creationflags=subprocess.CREATE_NO_WINDOW)
             elif sys.platform == "darwin":
                 subprocess.Popen(["open", mailto_uri])
                 if self.pdf_path and os.path.exists(self.pdf_path):
                     subprocess.Popen(["open", "-R", self.pdf_path])
             else:
                 subprocess.Popen(["xdg-open", mailto_uri])
-
             msg = ("✓ Votre client de messagerie s'est ouvert avec le courriel prêt.\n\n"
-                   f"📎 Le dossier contenant le PDF s'est aussi ouvert :\n"
-                   f"   {os.path.basename(self.pdf_path)}\n\n"
+                   f"📎 Le dossier contenant le PDF s'est aussi ouvert :\n   {os.path.basename(self.pdf_path)}\n\n"
                    "Glissez-déposez le PDF dans le courriel, puis cliquez Envoyer."
                    if self.pdf_path and os.path.exists(self.pdf_path)
                    else "✓ Votre client de messagerie s'est ouvert avec le courriel prêt à envoyer.")
-
             QMessageBox.information(self, "Courriel préparé — Groupe ADE", msg)
             self.accept()
         except Exception as ex:
             QMessageBox.critical(self, "Erreur", f"Impossible d'ouvrir le client mail :\n{ex}")
 
-# ── StatsDialog ───────────────────────────────────────────────────────────────
+# ╔══════════════════════════════════════════════════════════════╗
+# ║              StatsDialog — VERSION ENRICHIE                 ║
+# ╚══════════════════════════════════════════════════════════════╝
 class StatsDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
-        self.setWindowTitle("Statistiques — Groupe ADE"); self.resize(920,720)
-        self.setStyleSheet(SS_BASE + f"QDialog {{ background:{BG}; }}")
+        self.setWindowTitle("Statistiques — Groupe ADE"); self.resize(980, 820)
+        self.setStyleSheet(ss_base() + f"QDialog {{ background:{BG}; }}")
         self._load(); self._build()
 
     def _load(self):
-        self.weeks = []; self.proj_totals = {}
-        for monday in saved_weeks():
+        self.weeks = []
+        self.proj_totals  = {}
+        self.tache_totals = {}
+        self.all_day_hours: list[float] = []   # toutes les journées avec heures > 0
+        self.matin_h  = 0.0   # heures avant 12h
+        self.aprem_h  = 0.0   # heures après 12h
+
+        weeks_sorted = sorted(saved_weeks())   # croissant pour le streak
+        for monday in weeks_sorted:
             try:
                 with open(save_file(monday),"r",encoding="utf-8") as f: d = json.load(f)
                 total = 0.0; jour_h = {}
@@ -836,14 +966,51 @@ class StatsDialog(QDialog):
                     for r in d.get("jours",{}).get(j,[]):
                         h = calc_h(r.get("debut",""), r.get("fin",""))
                         jt += h
+                        # Par projet
                         p = r.get("projet","").strip()
                         if p and h > 0: self.proj_totals[p] = self.proj_totals.get(p,0.0)+h
+                        # Par tâche
+                        t = r.get("tache","").strip()
+                        if t and h > 0: self.tache_totals[t] = self.tache_totals.get(t,0.0)+h
+                        # Distribution matin/après-midi
+                        s = parse_heure(r.get("debut",""))
+                        e = parse_heure(r.get("fin",""))
+                        if s and e and e > s:
+                            noon = s.replace(hour=12, minute=0, second=0)
+                            if e <= noon:
+                                self.matin_h += h
+                            elif s >= noon:
+                                self.aprem_h += h
+                            else:
+                                # chevauchement midi
+                                mat = (noon - s).seconds/3600
+                                apr = (e - noon).seconds/3600
+                                self.matin_h += mat; self.aprem_h += apr
                     jour_h[j] = jt; total += jt
+                    if jt > 0: self.all_day_hours.append(jt)
                 self.weeks.append({"monday":monday,"label":week_label(monday),"total":total,"jours":jour_h})
             except: pass
 
+        # Streak (semaines complètes consécutives jusqu'à aujourd'hui)
+        self.streak = 0
+        today_monday = get_monday(datetime.today())
+        check = today_monday
+        week_map = {w["monday"].date(): w for w in self.weeks}
+        while True:
+            wk = week_map.get(check.date())
+            if wk and wk["total"] >= 35:
+                self.streak += 1
+                check -= timedelta(weeks=1)
+            else:
+                break
+
+        # Meilleure journée (heure max en une seule journée)
+        self.best_day_h = max(self.all_day_hours) if self.all_day_hours else 0.0
+
     def _build(self):
         lay = QVBoxLayout(self); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
+
+        # Header
         hdr = QFrame(); hdr.setFixedHeight(60)
         hdr.setStyleSheet(f"background:{BG2}; border-bottom:1px solid {BORDER};")
         hl = QHBoxLayout(hdr); hl.setContentsMargins(22,0,22,0)
@@ -857,84 +1024,149 @@ class StatsDialog(QDialog):
         scroll.setStyleSheet(f"QScrollArea {{ border:none; }} QWidget {{ background:{BG}; }}")
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         content = QWidget(); cl = QVBoxLayout(content)
-        cl.setContentsMargins(16,16,16,16); cl.setSpacing(12)
+        cl.setContentsMargins(16,16,16,16); cl.setSpacing(14)
         scroll.setWidget(content); lay.addWidget(scroll)
 
         if not self.weeks:
             cl.addWidget(lbl("Aucune donnée disponible.",14,color=MUTED)); cl.addStretch()
             self._footer(lay); return
 
-        totals = [w["total"] for w in self.weeks]; non_zero = [t for t in totals if t>0]
-        best = max(self.weeks, key=lambda w: w["total"]) if self.weeks else None
+        totals   = [w["total"] for w in self.weeks]
+        non_zero = [t for t in totals if t>0]
+        best_wk  = max(self.weeks, key=lambda w: w["total"]) if self.weeks else None
 
+        # ── Rangée 1 : 4 KPI principaux ──────────────────────────────────────
+        cl.addWidget(self._sec_title("Vue d'ensemble"))
         cr = QHBoxLayout(); cr.setSpacing(10)
         for title, val, color, sub, icon in [
             ("Total cumulé",   fmt_h(sum(totals)),   ACC,   f"{len(non_zero)} sem. actives","⏱"),
             ("Moyenne / sem.", fmt_h(sum(non_zero)/len(non_zero)) if non_zero else "–", GREEN, f"sur {len(non_zero)} sem.","📈"),
-            ("Meilleure sem.", fmt_h(max(totals)) if totals else "–", AMBER, best["label"] if best and best["total"]>0 else "–","🏆"),
+            ("Meilleure sem.", fmt_h(max(totals)) if totals else "–", AMBER, best_wk["label"] if best_wk and best_wk["total"]>0 else "–","🏆"),
             ("Sem. actives",   str(len(non_zero)), ACC2, f"sur {len(self.weeks)} total","📅"),
         ]:
-            c = QFrame(); c.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-top:2px solid {color}; border-radius:12px;")
-            cv = QVBoxLayout(c); cv.setContentsMargins(14,12,14,12); cv.setSpacing(3)
-            th = QHBoxLayout(); th.addWidget(lbl(title,10,bold=True,color=TXT2)); th.addStretch(); th.addWidget(QLabel(icon))
-            cv.addLayout(th); cv.addWidget(lbl(val,22,bold=True,color=color)); cv.addWidget(lbl(sub,10,color=TXT3))
-            cr.addWidget(c)
+            cr.addWidget(self._kpi_card(title, val, color, sub, icon))
         cl.addLayout(cr)
 
+        # ── Rangée 2 : KPI supplémentaires ───────────────────────────────────
+        cr2 = QHBoxLayout(); cr2.setSpacing(10)
+        # Streak
+        streak_col = GREEN if self.streak >= 4 else AMBER if self.streak >= 1 else MUTED
+        cr2.addWidget(self._kpi_card("Série en cours",
+            f"{self.streak} sem." if self.streak else "–",
+            streak_col,
+            "semaines complètes (≥35h) consécutives","🔥"))
+        # Meilleure journée
+        cr2.addWidget(self._kpi_card("Record journalier",
+            fmt_h(self.best_day_h) if self.best_day_h else "–",
+            ACC2, "meilleure journée toutes semaines","⚡"))
+        # Distribution matin/après-midi
+        total_dist = self.matin_h + self.aprem_h
+        if total_dist > 0:
+            mat_pct = int(self.matin_h / total_dist * 100)
+            apr_pct = 100 - mat_pct
+            dist_txt = f"{mat_pct}% matin"
+            dist_sub = f"{apr_pct}% après-midi"
+        else:
+            dist_txt = "–"; dist_sub = "données insuffisantes"
+        cr2.addWidget(self._kpi_card("Distribution horaire", dist_txt, "#A78BFA", dist_sub,"🌅"))
+        # Nb projets distincts
+        cr2.addWidget(self._kpi_card("Projets distincts",
+            str(len(self.proj_totals)) if self.proj_totals else "0",
+            PALETTE[1], f"{len(self.tache_totals)} tâche(s) différente(s)","📂"))
+        cl.addLayout(cr2)
+
+        # ── Section : Heures par projet ───────────────────────────────────────
         if self.proj_totals:
-            pc = QFrame(); pc.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-radius:12px;")
+            cl.addWidget(self._sec_title("Répartition par projet"))
+            pc = card_frame()
             pl = QVBoxLayout(pc); pl.setContentsMargins(16,14,16,14); pl.setSpacing(7)
-            ph = QHBoxLayout(); ph.addWidget(lbl("Heures par projet",12,bold=True)); ph.addStretch()
-            ph.addWidget(lbl(f"{len(self.proj_totals)} projet(s)",10,color=TXT3)); pl.addLayout(ph)
             all_h = sum(self.proj_totals.values()); max_h = max(self.proj_totals.values())
             for idx,(proj,h) in enumerate(sorted(self.proj_totals.items(),key=lambda x:x[1],reverse=True)):
                 color = PALETTE[idx%len(PALETTE)]
-                row = QFrame(); row.setStyleSheet(f"background:{CARD2}; border-radius:9px; border:none;")
-                rl = QHBoxLayout(row); rl.setContentsMargins(0,7,12,7); rl.setSpacing(0)
-                bl2 = QFrame(); bl2.setFixedWidth(4); bl2.setStyleSheet(f"background:{color}; border-radius:2px; margin:4px 0;"); rl.addWidget(bl2)
-                info = QWidget(); info.setStyleSheet("background:transparent;")
-                il = QVBoxLayout(info); il.setContentsMargins(12,0,0,0); il.setSpacing(4)
-                tr = QHBoxLayout(); tr.addWidget(lbl(proj,11,bold=True)); tr.addStretch()
-                tr.addWidget(lbl(f"{fmt_h(h)}  ·  {h/all_h*100:.1f}%",11,color=color)); il.addLayout(tr)
-                prog = QProgressBar(); prog.setValue(int(h/max_h*100)); prog.setFixedHeight(5); prog.setTextVisible(False)
-                prog.setStyleSheet(f"QProgressBar {{ background:{BG}; border-radius:2px; border:none; }} QProgressBar::chunk {{ background:{color}; border-radius:2px; }}")
-                il.addWidget(prog); rl.addWidget(info); pl.addWidget(row)
+                pl.addWidget(self._bar_row(proj, h, all_h, max_h, color))
             cl.addWidget(pc)
 
-        dc = QFrame(); dc.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-radius:12px;")
+        # ── Section : Heures par tâche ────────────────────────────────────────
+        if self.tache_totals:
+            cl.addWidget(self._sec_title("Répartition par tâche"))
+            tc2 = card_frame()
+            tl = QVBoxLayout(tc2); tl.setContentsMargins(16,14,16,14); tl.setSpacing(7)
+            all_h2 = sum(self.tache_totals.values()); max_h2 = max(self.tache_totals.values())
+            for idx,(tache,h) in enumerate(sorted(self.tache_totals.items(),key=lambda x:x[1],reverse=True)):
+                color = PALETTE[(idx+3)%len(PALETTE)]
+                tl.addWidget(self._bar_row(tache, h, all_h2, max_h2, color))
+            cl.addWidget(tc2)
+
+        # ── Section : Moy par jour ────────────────────────────────────────────
+        cl.addWidget(self._sec_title("Moyenne par jour de la semaine"))
+        dc = card_frame()
         dl = QVBoxLayout(dc); dl.setContentsMargins(16,14,16,14); dl.setSpacing(8)
-        dl.addWidget(lbl("Moyenne par jour",12,bold=True))
         sums={j:0.0 for j in JOURS}; cnts={j:0 for j in JOURS}
+        best_jour_h = 0.0; best_jour_name = ""
         for wk in self.weeks:
             for j in JOURS:
-                v=wk["jours"].get(j,0)
-                if v>0: sums[j]+=v; cnts[j]+=1
-        max_avg = max((sums[j]/cnts[j] if cnts[j] else 0 for j in JOURS),default=1) or 1
+                v = wk["jours"].get(j,0)
+                if v > 0: sums[j]+=v; cnts[j]+=1
+        avgs = {j:(sums[j]/cnts[j] if cnts[j] else 0) for j in JOURS}
+        max_avg = max(avgs.values()) or 1
+        for j, avg in avgs.items():
+            if avg > best_jour_h: best_jour_h = avg; best_jour_name = j
         for j in JOURS:
-            avg = sums[j]/cnts[j] if cnts[j] else 0
+            avg = avgs[j]
             r = QHBoxLayout(); r.setSpacing(10)
             jl = lbl(j,11,color=TXT2); jl.setFixedWidth(80); r.addWidget(jl)
+            is_best = (j == best_jour_name and avg > 0)
+            prog_color = GREEN if is_best else f"qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {ACC3},stop:1 {ACC})"
             prog = QProgressBar(); prog.setValue(int(avg/max_avg*100) if avg else 0)
             prog.setFixedHeight(10); prog.setTextVisible(False)
             prog.setStyleSheet(f"""
                 QProgressBar {{ background:{BG2}; border-radius:5px; border:none; }}
-                QProgressBar::chunk {{ background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {ACC3},stop:1 {ACC}); border-radius:5px; }}
+                QProgressBar::chunk {{ background:{prog_color}; border-radius:5px; }}
             """)
-            r.addWidget(prog,1); r.addWidget(lbl(fmt_h(avg) if avg else "–",11,bold=True,color=ACC2 if avg else MUTED))
+            r.addWidget(prog,1)
+            val_lbl = lbl(fmt_h(avg) if avg else "–", 11, bold=True, color=GREEN if is_best else (ACC2 if avg else MUTED))
+            r.addWidget(val_lbl)
+            if is_best:
+                r.addWidget(lbl("★ meilleur",9,color=GREEN))
             dl.addLayout(r)
         cl.addWidget(dc)
 
-        tc2 = QFrame(); tc2.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-radius:12px;")
-        tl2 = QVBoxLayout(tc2); tl2.setContentsMargins(16,14,16,14); tl2.setSpacing(0)
-        tl2.addWidget(lbl("Détail par semaine",12,bold=True)); tl2.addSpacing(8)
+        # ── Section : Distribution hebdo ──────────────────────────────────────
+        cl.addWidget(self._sec_title("Distribution des semaines"))
+        distr = card_frame()
+        drl = QHBoxLayout(distr); drl.setContentsMargins(16,14,16,14); drl.setSpacing(16)
+        buckets = {"< 20h":0,"20–35h":0,"35–40h":0,"≥ 40h":0}
+        for t in totals:
+            if t < 20:   buckets["< 20h"] += 1
+            elif t < 35: buckets["20–35h"] += 1
+            elif t < 40: buckets["35–40h"] += 1
+            else:         buckets["≥ 40h"] += 1
+        b_colors = [RED, AMBER, ACC, GREEN]
+        for (label, cnt), color in zip(buckets.items(), b_colors):
+            bw = QWidget(); bw.setStyleSheet("background:transparent;")
+            bwl = QVBoxLayout(bw); bwl.setContentsMargins(0,0,0,0); bwl.setSpacing(4); bwl.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            val_l = lbl(str(cnt),20,bold=True,color=color)
+            val_l.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            name_l = lbl(label,10,color=TXT2)
+            name_l.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            pct_l = lbl(f"{cnt/len(totals)*100:.0f}%" if totals else "–",9,color=TXT3)
+            pct_l.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            bwl.addWidget(val_l); bwl.addWidget(name_l); bwl.addWidget(pct_l)
+            drl.addWidget(bw,1)
+        cl.addWidget(distr)
+
+        # ── Section : Tableau détail semaines ─────────────────────────────────
+        cl.addWidget(self._sec_title("Détail par semaine"))
+        tc3 = card_frame()
+        tl3 = QVBoxLayout(tc3); tl3.setContentsMargins(16,14,16,14); tl3.setSpacing(0)
         hd = QFrame(); hd.setStyleSheet(f"background:{CARD2}; border-radius:7px;")
         hdl = QHBoxLayout(hd); hdl.setContentsMargins(12,6,10,6); hdl.setSpacing(4)
         for txt,w in [("Semaine",0),("Lun",60),("Mar",60),("Mer",60),("Jeu",60),("Ven",60),("Total",80)]:
-            l = QLabel(txt); l.setStyleSheet(f"color:{TXT3}; font-size:9px; font-weight:700; letter-spacing:1px; background:transparent;")
-            if w: l.setFixedWidth(w)
-            else: l.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            hdl.addWidget(l)
-        tl2.addWidget(hd)
+            lh = QLabel(txt); lh.setStyleSheet(f"color:{TXT3}; font-size:9px; font-weight:700; letter-spacing:1px; background:transparent;")
+            if w: lh.setFixedWidth(w)
+            else: lh.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            hdl.addWidget(lh)
+        tl3.addWidget(hd)
         for i,wk in enumerate(reversed(self.weeks)):
             row = QFrame(); row.setStyleSheet(f"background:{ROW if i%2==0 else CARD}; border-radius:0;"); row.setFixedHeight(34)
             rl2 = QHBoxLayout(row); rl2.setContentsMargins(12,0,10,0); rl2.setSpacing(4)
@@ -942,10 +1174,36 @@ class StatsDialog(QDialog):
             for j in JOURS:
                 v=wk["jours"].get(j,0); col = GREEN if v>=7 else TXT2 if v>0 else MUTED
                 l2 = lbl(fmt_h(v) if v else "–",10,color=col); l2.setFixedWidth(60); rl2.addWidget(l2)
-            tc2_col = GREEN if wk["total"]>=35 else AMBER if wk["total"]>0 else MUTED
-            tl_r = lbl(fmt_h(wk["total"]) if wk["total"] else "–",10,bold=True,color=tc2_col)
-            tl_r.setFixedWidth(80); rl2.addWidget(tl_r); tl2.addWidget(row)
-        cl.addWidget(tc2); cl.addStretch(); self._footer(lay)
+            tc_col = GREEN if wk["total"]>=35 else AMBER if wk["total"]>0 else MUTED
+            tl_r = lbl(fmt_h(wk["total"]) if wk["total"] else "–",10,bold=True,color=tc_col)
+            tl_r.setFixedWidth(80); rl2.addWidget(tl_r); tl3.addWidget(row)
+        cl.addWidget(tc3); cl.addStretch()
+        self._footer(lay)
+
+    def _sec_title(self, text):
+        w = QWidget(); w.setStyleSheet("background:transparent;")
+        hl = QHBoxLayout(w); hl.setContentsMargins(2,4,0,0); hl.setSpacing(8)
+        dot = QFrame(); dot.setFixedSize(6,6); dot.setStyleSheet(f"background:{ACC}; border-radius:3px;")
+        hl.addWidget(dot); hl.addWidget(lbl(text,11,bold=True)); hl.addStretch(); return w
+
+    def _kpi_card(self, title, val, color, sub, icon):
+        c = QFrame(); c.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-top:2px solid {color}; border-radius:12px;")
+        cv = QVBoxLayout(c); cv.setContentsMargins(14,12,14,12); cv.setSpacing(3)
+        th = QHBoxLayout(); th.addWidget(lbl(title,10,bold=True,color=TXT2)); th.addStretch(); th.addWidget(QLabel(icon))
+        cv.addLayout(th); cv.addWidget(lbl(val,20,bold=True,color=color)); cv.addWidget(lbl(sub,9,color=TXT3))
+        return c
+
+    def _bar_row(self, name, h, all_h, max_h, color):
+        row = QFrame(); row.setStyleSheet(f"background:{CARD2}; border-radius:9px; border:none;")
+        rl = QHBoxLayout(row); rl.setContentsMargins(0,7,12,7); rl.setSpacing(0)
+        bl2 = QFrame(); bl2.setFixedWidth(4); bl2.setStyleSheet(f"background:{color}; border-radius:2px; margin:4px 0;"); rl.addWidget(bl2)
+        info = QWidget(); info.setStyleSheet("background:transparent;")
+        il = QVBoxLayout(info); il.setContentsMargins(12,0,0,0); il.setSpacing(4)
+        tr = QHBoxLayout(); tr.addWidget(lbl(name,11,bold=True)); tr.addStretch()
+        tr.addWidget(lbl(f"{fmt_h(h)}  ·  {h/all_h*100:.1f}%",11,color=color)); il.addLayout(tr)
+        prog = QProgressBar(); prog.setValue(int(h/max_h*100)); prog.setFixedHeight(5); prog.setTextVisible(False)
+        prog.setStyleSheet(f"QProgressBar {{ background:{BG}; border-radius:2px; border:none; }} QProgressBar::chunk {{ background:{color}; border-radius:2px; }}")
+        il.addWidget(prog); rl.addWidget(info); return row
 
     def _footer(self, lay):
         foot = QFrame(); foot.setFixedHeight(30)
@@ -964,14 +1222,14 @@ class StatusBar(QFrame):
         self.msg = lbl("✓ Prêt",10,color=GREEN)
         lay.addWidget(self.dot); lay.addSpacing(4); lay.addWidget(self.msg); lay.addStretch()
         for t in (DEV_CREDIT,"  ·  ",COPYRIGHT,"  ·  ",f"Groupe ADE  {APP_VERSION}"):
-            bold = t.startswith("Groupe")
-            lay.addWidget(lbl(t,9,bold=bold,color=TXT3))
+            lay.addWidget(lbl(t,9,bold=t.startswith("Groupe"),color=TXT3))
 
     def set(self, text, color):
         self.dot.setStyleSheet(f"color:{color}; font-size:9px; background:transparent;")
         self.msg.setText(text); self.msg.setStyleSheet(f"color:{color}; background:transparent; font-size:10px;")
 
-_SAVE_SS = f"""
+def _save_ss():
+    return f"""
     QPushButton {{
         background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {ACC3},stop:1 {ACC});
         color:white; border:none; border-radius:9px; font-family:'Segoe UI'; font-size:12px; font-weight:600;
@@ -986,11 +1244,14 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(f"Groupe ADE — Feuille de Temps  {APP_VERSION}")
         self.resize(1540, 840); self.setMinimumSize(1160, 660)
-        self.setStyleSheet(SS_BASE)
 
-        self.today     = datetime.today()
-        self.monday    = get_monday(self.today)
-        self.settings  = load_settings()
+        self.today    = datetime.today()
+        self.monday   = get_monday(self.today)
+        self.settings = load_settings()
+        # Appliquer le thème sauvegardé
+        apply_theme(self.settings.get("theme","Dark Navy"))
+        self.setStyleSheet(ss_base())
+
         self.day_cards = {}
         self._dirty    = False
         self._last_pdf = ""
@@ -1022,7 +1283,6 @@ class MainWindow(QMainWindow):
         sb = QFrame(); sb.setFixedWidth(220)
         sb.setStyleSheet(f"background:{BG2}; border:none;")
         lay = QVBoxLayout(sb); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
-
         lay.addWidget(LogoWidget()); lay.addWidget(h_sep())
 
         # Semaine nav
@@ -1075,8 +1335,6 @@ class MainWindow(QMainWindow):
         for text, cmd in [("📅  Historique",self._historique),("📊  Statistiques",self._stats),
                           ("📄  Exporter PDF",self._pdf),("⚙️   Paramètres",self._parametres)]:
             b = sidebar_btn(text); b.clicked.connect(cmd); al.addWidget(b)
-
-        # ── Bouton Envoyer par courriel ─────────────────────────────────────
         self.send_mail_btn = QPushButton("✉️  Envoyer par courriel")
         self.send_mail_btn.setFixedHeight(34)
         self.send_mail_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -1105,7 +1363,7 @@ class MainWindow(QMainWindow):
             b = sidebar_btn(text); b.clicked.connect(cmd); tl2.addWidget(b)
         lay.addWidget(tr); lay.addStretch()
 
-        # Update frame (caché)
+        # Update frame
         self.update_frame = QFrame()
         self.update_frame.setStyleSheet(f"""
             background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #1A2E10,stop:1 #0F1E0A);
@@ -1158,7 +1416,7 @@ class MainWindow(QMainWindow):
         self.week_total_lbl.setStyleSheet(f"color:{ACC2}; font-size:14px; font-weight:700; background:{ACCD}; border:1px solid {ACC3}; border-radius:9px; padding:3px 14px;")
         tl.addWidget(self.week_total_lbl)
         self.save_btn = QPushButton("💾  Sauvegarder"); self.save_btn.setFixedSize(148,36)
-        self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor); self.save_btn.setStyleSheet(_SAVE_SS)
+        self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor); self.save_btn.setStyleSheet(_save_ss())
         self.save_btn.clicked.connect(self._save); tl.addWidget(self.save_btn)
         return top
 
@@ -1229,9 +1487,10 @@ class MainWindow(QMainWindow):
         self._dirty = False
         self.status_bar.set(f"✓ Sauvegardé à {datetime.now().strftime('%H:%M')}", GREEN)
         if not silent:
+            ss = _save_ss()
             self.save_btn.setText("✓  Sauvegardé !")
-            self.save_btn.setStyleSheet(_SAVE_SS.replace(ACC3,GREEN2).replace(ACC,GREEN))
-            QTimer.singleShot(1800, lambda: (self.save_btn.setText("💾  Sauvegarder"), self.save_btn.setStyleSheet(_SAVE_SS)))
+            self.save_btn.setStyleSheet(ss.replace(ACC3,GREEN2).replace(ACC,GREEN))
+            QTimer.singleShot(1800, lambda: (self.save_btn.setText("💾  Sauvegarder"), self.save_btn.setStyleSheet(_save_ss())))
 
     # ── Actions ───────────────────────────────────────────────────────────────
     def _historique(self):
@@ -1241,9 +1500,29 @@ class MainWindow(QMainWindow):
         for j in JOURS: self.day_cards[j].clear_all()
         self._load_week(monday)
     def _stats(self): self._save(silent=True); StatsDialog(self).exec()
+
     def _parametres(self):
-        dlg = ParamDialog(self, self.settings); dlg.saved.connect(self._apply_settings); dlg.exec()
-    def _apply_settings(self, s): self.settings=s; self.emp_entry.setText(s.get("employer",""))
+        dlg = ParamDialog(self, self.settings)
+        dlg.theme_changed.connect(self._apply_theme_live)
+        dlg.saved.connect(self._apply_settings)
+        old_theme = self.settings.get("theme","Dark Navy")
+        result = dlg.exec()
+        if result != QDialog.DialogCode.Accepted:
+            # Annulé : restaurer l'ancien thème
+            self._apply_theme_live(old_theme)
+
+    def _apply_theme_live(self, theme_name):
+        apply_theme(theme_name)
+        self.setStyleSheet(ss_base())
+        QApplication.instance().processEvents()
+
+    def _apply_settings(self, s):
+        self.settings = s
+        self.emp_entry.setText(s.get("employer",""))
+        apply_theme(s.get("theme","Dark Navy"))
+        self.setStyleSheet(ss_base())
+        write_settings(self.settings)
+
     def _open_folder(self): os.startfile(SAVE_PATH)
 
     def _export_zip(self):
@@ -1281,22 +1560,18 @@ class MainWindow(QMainWindow):
         self._save(silent=True)
         if not self.settings.get("email_dest","").strip():
             rep = QMessageBox.question(self, "Aucun destinataire configuré",
-                "Aucune adresse courriel n'est encore configurée.\n\n"
-                "Voulez-vous ouvrir les Paramètres pour en ajouter une ?")
+                "Aucune adresse courriel n'est encore configurée.\n\nVoulez-vous ouvrir les Paramètres pour en ajouter une ?")
             if rep == QMessageBox.StandardButton.Yes: self._parametres()
             return
-        # Générer le PDF si pas encore fait
         if not self._last_pdf or not os.path.exists(self._last_pdf):
             self.status_bar.set("Génération du PDF…", AMBER)
             QApplication.processEvents()
             self._last_pdf = self._generate_pdf_silent() or ""
         total = sum(self.day_cards[j].get_total() for j in JOURS)
-        dlg = EnvoiDialog(self,
-                          employer = self.emp_entry.text() or "Employé",
-                          week_lbl = week_label(self.monday),
-                          total_h  = fmt_h(total) if total else "0h",
-                          pdf_path = self._last_pdf,
-                          settings = self.settings)
+        dlg = EnvoiDialog(self, employer=self.emp_entry.text() or "Employé",
+                          week_lbl=week_label(self.monday),
+                          total_h=fmt_h(total) if total else "0h",
+                          pdf_path=self._last_pdf, settings=self.settings)
         dlg.exec()
         self.status_bar.set("✓ Prêt", GREEN)
 
@@ -1329,7 +1604,7 @@ class MainWindow(QMainWindow):
         self.update_btn.setEnabled(True); self.update_btn.setText("⬇  Réessayer"); self.update_prog.hide()
         QMessageBox.warning(self,"Erreur de mise à jour",f"Impossible de télécharger :\n{msg}\n\nVérifie ta connexion réseau.")
 
-    # ── PDF ───────────────────────────────────────────────────────────────────
+    # ── PDF — INCHANGÉ (toujours Dark Navy ADE) ───────────────────────────────
     def _generate_pdf_silent(self):
         try:
             from reportlab.pdfgen import canvas as rl  # noqa
@@ -1352,6 +1627,7 @@ class MainWindow(QMainWindow):
         if rep == QMessageBox.StandardButton.Yes: os.startfile(dest)
 
     def _build_pdf(self, dest):
+        # PDF toujours en Dark Navy ADE — indépendant du thème UI
         from reportlab.pdfgen import canvas as rl
         from reportlab.lib.pagesizes import letter
         c = rl.Canvas(dest, pagesize=letter); PW, PH = letter
@@ -1359,7 +1635,6 @@ class MainWindow(QMainWindow):
         def bg(): c.setFillColorRGB(0.031,0.047,0.078); c.rect(0,0,PW,PH,fill=1,stroke=0)
 
         bg()
-        # Header
         c.setFillColorRGB(0.165,0.369,0.969); c.rect(0,PH-72,PW,72,fill=1,stroke=0)
         c.setFillColorRGB(0.102,0.247,0.698); c.rect(0,PH-72,6,72,fill=1,stroke=0)
         c.setFillColorRGB(0.941,0.957,1.0); c.setFont("Helvetica-Bold",22)
@@ -1379,7 +1654,6 @@ class MainWindow(QMainWindow):
             card = self.day_cards[jour]
             rows = [r for r in card.rows if r.start.text() or r.end.text()]
             if y < 130: c.showPage(); bg(); y = PH-30
-            # Jour header
             c.setFillColorRGB(0.082,0.110,0.180); c.rect(20,y-20,PW-40,22,fill=1,stroke=0)
             c.setFillColorRGB(0.165,0.369,0.969); c.rect(20,y-20,5,22,fill=1,stroke=0)
             c.setFillColorRGB(0.941,0.957,1.0); c.setFont("Helvetica-Bold",10)
@@ -1391,7 +1665,6 @@ class MainWindow(QMainWindow):
             if not rows:
                 c.setFillColorRGB(0.42,0.50,0.67); c.setFont("Helvetica-Oblique",9)
                 c.drawString(36,y-8,"Aucune entrée"); y -= 18; continue
-            # Col headers — avec TÂCHE
             c.setFillColorRGB(0.063,0.086,0.141); c.rect(20,y-15,PW-40,17,fill=1,stroke=0)
             c.setFillColorRGB(0.42,0.50,0.67); c.setFont("Helvetica-Bold",8)
             for txt, x in [("DATE",28),("DÉBUT",118),("FIN",166),("TÂCHE",214),("PROJET",310),("CLIENT / DESC",400),("DURÉE",PW-56)]:
@@ -1405,9 +1678,9 @@ class MainWindow(QMainWindow):
                 c.drawString(28,  y-7, r.date_lbl.text())
                 c.drawString(118, y-7, r.start.text())
                 c.drawString(166, y-7, r.end.text())
-                c.drawString(214, y-7, r.tache.text()[:18])   # Tâche
-                c.drawString(310, y-7, r.projet.text()[:16])  # Projet
-                c.drawString(400, y-7, r.desc.text()[:22])    # Client / Desc
+                c.drawString(214, y-7, r.tache.text()[:18])
+                c.drawString(310, y-7, r.projet.text()[:16])
+                c.drawString(400, y-7, r.desc.text()[:22])
                 c.setFillColorRGB(0.165,0.369,0.969)
                 c.drawRightString(PW-24,y-7,fmt_h(calc_h(r.start.text(),r.end.text())))
                 y -= 15
@@ -1426,6 +1699,11 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
+
+    # Charger le thème sauvegardé avant de construire la palette
+    _s = load_settings()
+    apply_theme(_s.get("theme","Dark Navy"))
+
     pal = app.palette()
     pal.setColor(pal.ColorRole.Window,          QColor(BG))
     pal.setColor(pal.ColorRole.WindowText,      QColor(TXT))
@@ -1437,6 +1715,7 @@ if __name__ == "__main__":
     pal.setColor(pal.ColorRole.Highlight,       QColor(ACC))
     pal.setColor(pal.ColorRole.HighlightedText, QColor("#FFFFFF"))
     app.setPalette(pal)
+
     win = MainWindow()
     win.show()
     sys.exit(app.exec())

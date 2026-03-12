@@ -1,6 +1,6 @@
 {
-  "version": "v3.6",
-  "notes": "envoie rapport semaine",
+  "version": "v3.7",
+  "notes": "Ajoute de themes et stats",
   "date": "2026-03-12",
   "author": "Thierry Rouillard"
 }
