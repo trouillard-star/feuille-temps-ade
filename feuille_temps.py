@@ -83,10 +83,34 @@ class UpdateDownloader(threading.Thread):
         self.done_cb      = done_cb
         self.error_cb     = error_cb
 
+    @staticmethod
+    def get_current_exe() -> str:
+        """Retourne le chemin RÉEL du .exe en cours d'exécution.
+        Sous PyInstaller --onefile, sys.executable pointe vers le extracteur
+        dans %TEMP% — il faut utiliser sys.argv[0] résolu en absolu."""
+        if getattr(sys, "frozen", False):
+            # PyInstaller onefile : le vrai exe = argv[0] résolu
+            exe = os.path.abspath(sys.argv[0])
+            # Fallback si argv[0] est vide ou bizarre
+            if not exe.lower().endswith(".exe") or not os.path.exists(exe):
+                exe = os.path.abspath(sys.executable)
+            return exe
+        return ""   # mode dev Python, pas un exe
+
     def run(self):
         try:
-            tmp_dir  = tempfile.mkdtemp()
-            tmp_exe  = os.path.join(tmp_dir, EXE_NAME)
+            # ── 1. Chemin du vrai exe ──────────────────────────────────────
+            current_exe = self.get_current_exe()
+            if not current_exe:
+                self.error_cb("Fonctionne uniquement depuis le .exe compilé.")
+                return
+
+            current_dir = os.path.dirname(current_exe)
+            current_name = os.path.basename(current_exe)
+
+            # ── 2. Télécharger le nouvel exe dans un dossier temp ──────────
+            tmp_dir = tempfile.mkdtemp(prefix="ade_update_")
+            tmp_exe = os.path.join(tmp_dir, EXE_NAME)
 
             def reporthook(block, block_size, total):
                 dl = block * block_size
@@ -94,24 +118,59 @@ class UpdateDownloader(threading.Thread):
 
             urlretrieve(GITHUB_RELEASE_URL, tmp_exe, reporthook)
 
-            # Script bat : attend 2s (fermeture app), copie, relance
-            current_exe = sys.executable if getattr(sys, "frozen", False) else ""
-            if not current_exe:
-                self.error_cb("Fonctionne uniquement depuis le .exe compilé.")
+            # Vérifie que le téléchargement est valide (> 100 KB)
+            if os.path.getsize(tmp_exe) < 100_000:
+                self.error_cb("Fichier téléchargé trop petit — téléchargement corrompu.")
                 return
 
-            bat = os.path.join(tmp_dir, "update.bat")
-            with open(bat, "w", encoding="utf-8") as f:
+            # ── 3. Script .bat robuste ────────────────────────────────────
+            # Renomme l'ancien exe en .old, copie le nouveau, relance
+            old_exe   = os.path.join(current_dir, current_name + ".old")
+            bat_path  = os.path.join(tmp_dir, "ade_update.bat")
+
+            with open(bat_path, "w", encoding="utf-8") as f:
                 f.write(f"""@echo off
-timeout /t 2 /nobreak >nul
+:: ADE Auto-Update — Développé par Thierry Rouillard
+:: Attendre que le processus se ferme (le PID est passé en arg ou on attend 3s)
+timeout /t 3 /nobreak >nul
+
+:: Supprimer l'ancien .old s'il existe
+if exist "{old_exe}" del /f /q "{old_exe}"
+
+:: Renommer l'exe actuel en .old (libère le verrou Windows)
+if exist "{current_exe}" (
+    ren "{current_exe}" "{current_name}.old"
+)
+
+:: Copier le nouvel exe
 copy /y "{tmp_exe}" "{current_exe}"
+
+if errorlevel 1 (
+    :: Échec — remettre l'ancien
+    if exist "{old_exe}" ren "{old_exe}" "{current_name}"
+    exit /b 1
+)
+
+:: Supprimer l'ancien
+if exist "{old_exe}" del /f /q "{old_exe}"
+
+:: Relancer la nouvelle version
 start "" "{current_exe}"
-del "%~f0"
+
+:: Nettoyer le dossier temp
+timeout /t 2 /nobreak >nul
+rmdir /s /q "{tmp_dir}" 2>nul
 """)
-            subprocess.Popen(["cmd.exe", "/c", bat],
-                             creationflags=subprocess.CREATE_NO_WINDOW,
-                             close_fds=True)
+
+            # Lance le bat DÉTACHÉ — l'app va se fermer juste après
+            subprocess.Popen(
+                ["cmd.exe", "/c", bat_path],
+                creationflags=subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS,
+                close_fds=True,
+                cwd=current_dir,
+            )
             self.done_cb()
+
         except Exception as ex:
             self.error_cb(str(ex))
 
