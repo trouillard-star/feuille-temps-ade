@@ -1,6 +1,6 @@
 """
 ╔══════════════════════════════════════════════════════════════╗
-║         Feuille de Temps — Le Groupe ADE  v3.9              ║
+║         Feuille de Temps — Le Groupe ADE  v3.11             ║
 ║         © 2026 Thierry Rouillard — Tous droits réservés      ║
 ╚══════════════════════════════════════════════════════════════╝
 """
@@ -16,7 +16,8 @@ from PyQt6.QtWidgets import (
     QFileDialog, QMessageBox, QDialog, QSizePolicy, QGraphicsDropShadowEffect,
     QTextEdit, QComboBox,
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject, QPropertyAnimation, QEasingCurve, QPoint
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject, QPropertyAnimation, QEasingCurve, QPoint, QRect, QSize
+from PyQt6.QtWidgets import QLayout
 from PyQt6.QtGui import QFont, QColor
 
 # ── Chemins ───────────────────────────────────────────────────────────────────
@@ -27,7 +28,7 @@ os.makedirs(SAVE_PATH, exist_ok=True)
 
 APP_NAME    = "Groupe ADE"
 APP_SUB     = "Feuille de Temps"
-APP_VERSION = "v3.10"
+APP_VERSION = "v3.11"
 COPYRIGHT   = "© 2026 Thierry Rouillard"
 DEV_CREDIT  = "Développé par Thierry Rouillard"
 
@@ -120,6 +121,8 @@ rmdir /s /q "{tmp_dir}" 2>nul
 # ╔══════════════════════════════════════════════════════════════╗
 # ║                    SYSTÈME DE THÈMES                         ║
 # ╚══════════════════════════════════════════════════════════════╝
+
+# unlock_at = total d'heures globales requis pour débloquer (0 = toujours disponible)
 THEMES = {
     "Dark Navy": {
         "BG":"#080C14","BG2":"#0D1220","BG3":"#111827",
@@ -131,7 +134,8 @@ THEMES = {
         "MUTED":"#2D3A55","BORDER":"#1E2C47","BORDER2":"#263351","ROW":"#0F1629",
         "PALETTE":["#4F8EF7","#34D399","#FBBF24","#A78BFA","#F472B6",
                    "#22D3EE","#FB923C","#A3E635","#F87171","#2DD4BF"],
-        "LIGHT": False,
+        "LIGHT": False, "unlock_at": 0,
+        "desc": "Thème par défaut",
     },
     "Midnight": {
         "BG":"#05050A","BG2":"#09090F","BG3":"#0E0E16",
@@ -143,7 +147,8 @@ THEMES = {
         "MUTED":"#1E293B","BORDER":"#16162A","BORDER2":"#22223B","ROW":"#080810",
         "PALETTE":["#818CF8","#4ADE80","#FCD34D","#C084FC","#F472B6",
                    "#38BDF8","#FB923C","#A3E635","#F87171","#2DD4BF"],
-        "LIGHT": False,
+        "LIGHT": False, "unlock_at": 0,
+        "desc": "Thème par défaut",
     },
     "Slate": {
         "BG":"#0F172A","BG2":"#1E293B","BG3":"#1E293B",
@@ -155,7 +160,8 @@ THEMES = {
         "MUTED":"#334155","BORDER":"#334155","BORDER2":"#475569","ROW":"#0F172A",
         "PALETTE":["#38BDF8","#34D399","#FBBF24","#A78BFA","#F472B6",
                    "#818CF8","#FB923C","#A3E635","#FB7185","#2DD4BF"],
-        "LIGHT": False,
+        "LIGHT": False, "unlock_at": 0,
+        "desc": "Thème par défaut",
     },
     "Forest": {
         "BG":"#071209","BG2":"#0C1A0D","BG3":"#112214",
@@ -167,7 +173,8 @@ THEMES = {
         "MUTED":"#1A3320","BORDER":"#1A3320","BORDER2":"#14532D","ROW":"#08120A",
         "PALETTE":["#4ADE80","#FDE047","#34D399","#A3E635","#86EFAC",
                    "#22D3EE","#FB923C","#6EE7B7","#F87171","#2DD4BF"],
-        "LIGHT": False,
+        "LIGHT": False, "unlock_at": 0,
+        "desc": "Thème par défaut",
     },
     "Crimson": {
         "BG":"#0E0808","BG2":"#160C0C","BG3":"#1C1010",
@@ -179,7 +186,8 @@ THEMES = {
         "MUTED":"#3B1C1C","BORDER":"#2E1515","BORDER2":"#7F1D1D","ROW":"#0E0808",
         "PALETTE":["#F87171","#FCA5A5","#FCD34D","#C084FC","#F472B6",
                    "#FB923C","#A3E635","#38BDF8","#4ADE80","#2DD4BF"],
-        "LIGHT": False,
+        "LIGHT": False, "unlock_at": 0,
+        "desc": "Thème par défaut",
     },
     "Arctic Light": {
         "BG":"#F0F4FA","BG2":"#E4EAF5","BG3":"#EBF0FA",
@@ -191,7 +199,8 @@ THEMES = {
         "MUTED":"#D1D5DB","BORDER":"#DDE3EF","BORDER2":"#C7D2E8","ROW":"#F9FAFB",
         "PALETTE":["#2563EB","#059669","#D97706","#7C3AED","#DB2777",
                    "#0891B2","#EA580C","#65A30D","#DC2626","#0D9488"],
-        "LIGHT": True,
+        "LIGHT": True, "unlock_at": 0,
+        "desc": "Thème par défaut",
     },
     "Warm Paper": {
         "BG":"#FAF7F2","BG2":"#F0EBE0","BG3":"#F5F0E8",
@@ -203,7 +212,126 @@ THEMES = {
         "MUTED":"#D6D3D1","BORDER":"#E7E5E0","BORDER2":"#D6D3D1","ROW":"#FDFCF9",
         "PALETTE":["#92400E","#065F46","#B45309","#5B21B6","#BE185D",
                    "#0369A1","#C2410C","#4D7C0F","#991B1B","#0F766E"],
-        "LIGHT": True,
+        "LIGHT": True, "unlock_at": 0,
+        "desc": "Thème par défaut",
+    },
+    # ── Thèmes débloquables ────────────────────────────────────────────────
+    "Violet Dream": {
+        "BG":"#0A0614","BG2":"#100B1E","BG3":"#150F26",
+        "CARD":"#160E2A","CARD2":"#1E1438",
+        "ACC":"#C084FC","ACC2":"#D8B4FE","ACC3":"#7C3AED","ACCD":"#2E1065",
+        "GREEN":"#4ADE80","GREEN2":"#16A34A",
+        "RED":"#F87171","AMBER":"#FCD34D",
+        "TXT":"#FAF5FF","TXT2":"#A78BFA","TXT3":"#4C1D95",
+        "MUTED":"#2E1065","BORDER":"#2D1B69","BORDER2":"#4C1D95","ROW":"#0A0614",
+        "PALETTE":["#C084FC","#4ADE80","#FCD34D","#38BDF8","#F472B6",
+                   "#A78BFA","#FB923C","#A3E635","#F87171","#2DD4BF"],
+        "LIGHT": False, "unlock_at": 500,
+        "desc": "🔒 Débloqué à 500h cumulées",
+    },
+    "Cyberpunk": {
+        "BG":"#020608","BG2":"#03080C","BG3":"#050C10",
+        "CARD":"#060D14","CARD2":"#0A1420",
+        "ACC":"#00FFF0","ACC2":"#80FFFA","ACC3":"#00B8AD","ACCD":"#003330",
+        "GREEN":"#39FF14","GREEN2":"#27B30E",
+        "RED":"#FF0055","AMBER":"#FFE000",
+        "TXT":"#E0FFFF","TXT2":"#00B8AD","TXT3":"#004D47",
+        "MUTED":"#003330","BORDER":"#00443F","BORDER2":"#006660","ROW":"#020608",
+        "PALETTE":["#00FFF0","#39FF14","#FFE000","#FF00FF","#FF0055",
+                   "#00B8FF","#FF6600","#CCFF00","#FF0055","#00FFCC"],
+        "LIGHT": False, "unlock_at": 500,
+        "desc": "🔒 Débloqué à 500h cumulées",
+    },
+    "Sunset": {
+        "BG":"#0F0608","BG2":"#180B10","BG3":"#1E0E14",
+        "CARD":"#1C0E14","CARD2":"#26121C",
+        "ACC":"#FB923C","ACC2":"#FDBA74","ACC3":"#EA580C","ACCD":"#431407",
+        "GREEN":"#4ADE80","GREEN2":"#16A34A",
+        "RED":"#F87171","AMBER":"#FCD34D",
+        "TXT":"#FFF7ED","TXT2":"#FDBA74","TXT3":"#7C2D12",
+        "MUTED":"#431407","BORDER":"#431407","BORDER2":"#7C2D12","ROW":"#0F0608",
+        "PALETTE":["#FB923C","#F472B6","#FCD34D","#C084FC","#4ADE80",
+                   "#38BDF8","#F87171","#A3E635","#E879F9","#2DD4BF"],
+        "LIGHT": False, "unlock_at": 500,
+        "desc": "🔒 Débloqué à 500h cumulées",
+    },
+    "Deep Ocean": {
+        "BG":"#020A12","BG2":"#041524","BG3":"#051C2E",
+        "CARD":"#061B30","CARD2":"#082440",
+        "ACC":"#22D3EE","ACC2":"#67E8F9","ACC3":"#0891B2","ACCD":"#0E3A4A",
+        "GREEN":"#34D399","GREEN2":"#059669",
+        "RED":"#F87171","AMBER":"#FCD34D",
+        "TXT":"#ECFEFF","TXT2":"#67E8F9","TXT3":"#164E63",
+        "MUTED":"#0E3A4A","BORDER":"#0E3A4A","BORDER2":"#155E75","ROW":"#020A12",
+        "PALETTE":["#22D3EE","#34D399","#FCD34D","#818CF8","#F472B6",
+                   "#67E8F9","#FB923C","#A3E635","#F87171","#2DD4BF"],
+        "LIGHT": False, "unlock_at": 1000,
+        "desc": "🔒 Débloqué à 1 000h cumulées",
+    },
+    "Aurora": {
+        "BG":"#030A08","BG2":"#051410","BG3":"#071A15",
+        "CARD":"#071A15","CARD2":"#0B261E",
+        "ACC":"#2DD4BF","ACC2":"#99F6E4","ACC3":"#0F766E","ACCD":"#042F2E",
+        "GREEN":"#A3E635","GREEN2":"#65A30D",
+        "RED":"#F87171","AMBER":"#FCD34D",
+        "TXT":"#F0FDFA","TXT2":"#99F6E4","TXT3":"#134E4A",
+        "MUTED":"#042F2E","BORDER":"#042F2E","BORDER2":"#115E59","ROW":"#030A08",
+        "PALETTE":["#2DD4BF","#A3E635","#818CF8","#F472B6","#FCD34D",
+                   "#22D3EE","#34D399","#C084FC","#F87171","#67E8F9"],
+        "LIGHT": False, "unlock_at": 1000,
+        "desc": "🔒 Débloqué à 1 000h cumulées",
+    },
+    "Rose Gold": {
+        "BG":"#FDF2F5","BG2":"#F9E4EC","BG3":"#FAEDF2",
+        "CARD":"#FFFFFF","CARD2":"#FFF0F5",
+        "ACC":"#DB2777","ACC2":"#BE185D","ACC3":"#EC4899","ACCD":"#FCE7F3",
+        "GREEN":"#059669","GREEN2":"#047857",
+        "RED":"#DC2626","AMBER":"#D97706",
+        "TXT":"#1F0A12","TXT2":"#831843","TXT3":"#FBCFE8",
+        "MUTED":"#FBCFE8","BORDER":"#FCE7F3","BORDER2":"#F9A8D4","ROW":"#FFF5F8",
+        "PALETTE":["#DB2777","#059669","#D97706","#7C3AED","#0891B2",
+                   "#EA580C","#65A30D","#DC2626","#0D9488","#C026D3"],
+        "LIGHT": True, "unlock_at": 1000,
+        "desc": "🔒 Débloqué à 1 000h cumulées",
+    },
+    "Obsidian Gold": {
+        "BG":"#080706","BG2":"#0F0E0A","BG3":"#141210",
+        "CARD":"#141210","CARD2":"#1C1A14",
+        "ACC":"#D4A820","ACC2":"#F5D060","ACC3":"#A07A10","ACCD":"#2A2008",
+        "GREEN":"#4ADE80","GREEN2":"#16A34A",
+        "RED":"#F87171","AMBER":"#F5D060",
+        "TXT":"#FDF8E8","TXT2":"#D4A820","TXT3":"#4A3A10",
+        "MUTED":"#2A2008","BORDER":"#2A2008","BORDER2":"#4A3A10","ROW":"#080706",
+        "PALETTE":["#D4A820","#4ADE80","#F5D060","#C084FC","#F472B6",
+                   "#22D3EE","#FB923C","#A3E635","#F87171","#2DD4BF"],
+        "LIGHT": False, "unlock_at": 2000,
+        "desc": "🔒 Débloqué à 2 000h cumulées",
+    },
+    "Sakura": {
+        "BG":"#FFF5F7","BG2":"#FFE8EE","BG3":"#FFEEF3",
+        "CARD":"#FFFFFF","CARD2":"#FFF0F4",
+        "ACC":"#E879F9","ACC2":"#D946EF","ACC3":"#C026D3","ACCD":"#FDF4FF",
+        "GREEN":"#059669","GREEN2":"#047857",
+        "RED":"#DC2626","AMBER":"#D97706",
+        "TXT":"#1A0A1A","TXT2":"#7E22CE","TXT3":"#F5D0FE",
+        "MUTED":"#F5D0FE","BORDER":"#FAE8FF","BORDER2":"#F0ABFC","ROW":"#FFF8FA",
+        "PALETTE":["#E879F9","#059669","#D97706","#2563EB","#DB2777",
+                   "#0891B2","#EA580C","#65A30D","#DC2626","#0D9488"],
+        "LIGHT": True, "unlock_at": 2000,
+        "desc": "🔒 Débloqué à 2 000h cumulées",
+    },
+    "Void": {
+        "BG":"#000000","BG2":"#050505","BG3":"#080808",
+        "CARD":"#0A0A0A","CARD2":"#101010",
+        "ACC":"#FFFFFF","ACC2":"#CCCCCC","ACC3":"#888888","ACCD":"#1A1A1A",
+        "GREEN":"#4ADE80","GREEN2":"#16A34A",
+        "RED":"#F87171","AMBER":"#FCD34D",
+        "TXT":"#FFFFFF","TXT2":"#888888","TXT3":"#333333",
+        "MUTED":"#1A1A1A","BORDER":"#1A1A1A","BORDER2":"#2A2A2A","ROW":"#000000",
+        "PALETTE":["#FFFFFF","#CCCCCC","#888888","#555555","#AAAAAA",
+                   "#DDDDDD","#666666","#BBBBBB","#999999","#444444"],
+        "LIGHT": False, "unlock_at": 5000,
+        "desc": "🔒 Débloqué à 5 000h cumulées — Légendaire",
     },
 }
 
@@ -223,6 +351,11 @@ def apply_theme(name: str):
         t["TXT"],t["TXT2"],t["TXT3"],t["MUTED"],t["BORDER"],t["BORDER2"],t["ROW"])
     PALETTE[:] = t["PALETTE"]; IS_LIGHT = t.get("LIGHT", False)
 
+def is_theme_unlocked(name: str, total_global_h: float) -> bool:
+    t = THEMES.get(name)
+    if not t: return False
+    return total_global_h >= t.get("unlock_at", 0)
+
 apply_theme("Dark Navy")
 
 # ── Constantes UI ─────────────────────────────────────────────────────────────
@@ -230,15 +363,53 @@ JOURS      = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"]
 MOIS_FR    = {1:"Janvier",2:"Février",3:"Mars",4:"Avril",5:"Mai",6:"Juin",
               7:"Juillet",8:"Août",9:"Septembre",10:"Octobre",11:"Novembre",12:"Décembre"}
 JOURS_ABRV = {"Lundi":"Lun","Mardi":"Mar","Mercredi":"Mer","Jeudi":"Jeu","Vendredi":"Ven"}
+OBJECTIF_H = 40.0  # Semaine standard ADE
+
+# ── Système XP / Niveaux ──────────────────────────────────────────────────────
+XP_LEVELS = [
+    (0,    1,  "Stagiaire",      "#94A3B8"),
+    (50,   2,  "Junior",         "#60A5FA"),
+    (150,  3,  "Intermédiaire",  "#34D399"),
+    (300,  4,  "Confirmé",       "#FBBF24"),
+    (500,  5,  "Senior",         "#FB923C"),
+    (750,  6,  "Expert",         "#F472B6"),
+    (1000, 7,  "Vétéran",        "#A78BFA"),
+    (1500, 8,  "Élite",          "#E879F9"),
+    (2500, 9,  "Maître",         "#38BDF8"),
+    (5000, 10, "Légende ADE",    "#FFD700"),
+]
+# XP = 1 pt par heure travaillée + bonus trophées
+
+def get_xp_info(total_h: float, nb_trophees: int = 0) -> dict:
+    """Retourne niveau, titre, couleur, xp courant, xp requis prochain niveau."""
+    xp = int(total_h) + nb_trophees * 5  # 1 XP/h + 5 XP/trophée
+    cur_lvl = XP_LEVELS[0]
+    next_lvl = None
+    for i, lvl in enumerate(XP_LEVELS):
+        if xp >= lvl[0]:
+            cur_lvl = lvl
+            next_lvl = XP_LEVELS[i + 1] if i + 1 < len(XP_LEVELS) else None
+        else:
+            break
+    xp_cur  = xp - cur_lvl[0]
+    xp_need = (next_lvl[0] - cur_lvl[0]) if next_lvl else 0
+    pct     = int(xp_cur / xp_need * 100) if xp_need else 100
+    return {
+        "xp": xp, "level": cur_lvl[1], "title": cur_lvl[2], "color": cur_lvl[3],
+        "xp_cur": xp_cur, "xp_need": xp_need, "pct": pct,
+        "next_title": next_lvl[2] if next_lvl else None,
+        "is_max": next_lvl is None,
+    }
+
 
 def ss_base():
     sb = BORDER2 if not IS_LIGHT else "#B0BDD0"
     return f"""
     QWidget {{ background:{BG}; color:{TXT}; font-family:'Segoe UI'; font-size:13px; }}
-    QScrollBar:vertical {{ background:{BG2}; width:5px; border-radius:3px; }}
-    QScrollBar::handle:vertical {{ background:{sb}; border-radius:3px; min-height:24px; }}
-    QScrollBar::handle:vertical:hover {{ background:{ACC3}; }}
-    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height:0; }}
+    QScrollBar:vertical {{ background:transparent; width:6px; border-radius:3px; margin:2px 1px; }}
+    QScrollBar::handle:vertical {{ background:{sb}; border-radius:3px; min-height:30px; }}
+    QScrollBar::handle:vertical:hover {{ background:{ACC}; }}
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height:0; border:none; }}
     QScrollBar:horizontal {{ height:0; }}
     QToolTip {{ background:{CARD2}; color:{TXT}; border:1px solid {ACC3}; padding:5px 8px; border-radius:6px; font-size:12px; }}
     QComboBox {{ background:{CARD}; color:{TXT}; border:1px solid {BORDER}; border-radius:7px; padding:0 10px; font-size:12px; min-height:32px; }}
@@ -302,7 +473,6 @@ def glow(widget, color, radius=16):
     widget.setGraphicsEffect(fx)
 
 def _load_week_data(monday) -> dict:
-    """Charge une semaine et retourne {total, jours:{jour:float}}. Lève exception si introuvable."""
     with open(save_file(monday), "r", encoding="utf-8") as f: d = json.load(f)
     total = 0.0; jour_h = {}
     for j in JOURS:
@@ -311,7 +481,6 @@ def _load_week_data(monday) -> dict:
     return {"monday": monday, "label": week_label(monday), "total": total, "jours": jour_h, "_raw": d}
 
 def load_all_weeks() -> list:
-    """Charge toutes les semaines enregistrées, silence les erreurs."""
     weeks = []
     for monday in sorted(saved_weeks()):
         try: weeks.append(_load_week_data(monday))
@@ -462,10 +631,16 @@ class AutoEntry(QLineEdit):
             self._accepting = True
             self.setText(self._suggestion); self.setCursorPosition(len(self._suggestion))
             self._suggestion = ""; self._accepting = False; event.accept(); return
-        if self._suggestion and event.key() == Qt.Key.Key_Escape:
+        if self._suggestion and event.key() in (Qt.Key.Key_Backspace, Qt.Key.Key_Delete,
+                                                Qt.Key.Key_Escape):
+            # Garder seulement la partie tapée (avant la sélection) et annuler la suggestion
             typed = self.text()[:self.selectionStart()]
-            self.blockSignals(True); self.setText(typed); self.blockSignals(False)
-            self._suggestion = ""; event.accept(); return
+            if event.key() == Qt.Key.Key_Backspace and typed:
+                typed = typed[:-1]  # supprimer le dernier caractère tapé
+            self._suggestion = ""
+            self.blockSignals(True); self.setText(typed)
+            self.setCursorPosition(len(typed)); self.blockSignals(False)
+            event.accept(); return
         super().keyPressEvent(event)
 
 _COL_HDR = [("Date",100),("Début",72),("Fin",72),("Tâche",140),("Projet",150),("Client / Description",0),("Durée",64),("",28)]
@@ -637,9 +812,10 @@ class DayCard(QFrame):
 
     def _on_change(self):
         total = self.get_total()
-        if total >= 7:   color, bg, brd = GREEN, ("#0A2218" if not IS_LIGHT else "#D1FAE5"), GREEN2
-        elif total > 0:  color, bg, brd = AMBER, ("#211A08" if not IS_LIGHT else "#FEF3C7"), ("#92700A" if not IS_LIGHT else "#D97706")
-        else:            color, bg, brd = TXT2, ACCD, ACC3
+        if total >= 8:      color, bg, brd = GREEN, ("#0A2218" if not IS_LIGHT else "#D1FAE5"), GREEN2
+        elif total >= 4:    color, bg, brd = ACC,   ACCD, ACC3
+        elif total > 0:     color, bg, brd = AMBER, ("#211A08" if not IS_LIGHT else "#FEF3C7"), ("#92700A" if not IS_LIGHT else "#D97706")
+        else:               color, bg, brd = TXT2,  ACCD, BORDER
         self.tot_lbl.setText(fmt_h(total) if total else "–")
         self.tot_lbl.setStyleSheet(f"color:{color}; font-size:12px; font-weight:700; background:transparent;")
         self.tot_badge.setStyleSheet(f"background:{bg}; border-radius:8px; border:1px solid {brd};")
@@ -708,8 +884,8 @@ class HistoriqueDialog(QDialog):
             self.list_layout.insertWidget(0, lbl("Aucune semaine enregistrée",12,color=MUTED)); return
         for monday in weeks:
             tot = self._week_total(monday)
-            bar_c = GREEN if tot>=35 else (AMBER if tot>0 else MUTED)
-            bg_c  = ("#091A10" if not IS_LIGHT else "#D1FAE5") if tot>=35 else \
+            bar_c = GREEN if tot>=40 else (AMBER if tot>0 else MUTED)
+            bg_c  = ("#091A10" if not IS_LIGHT else "#D1FAE5") if tot>=40 else \
                     ("#1A1408" if not IS_LIGHT else "#FEF3C7") if tot>0 else CARD
             card = QFrame()
             card.setStyleSheet(f"background:{bg_c}; border:1px solid {BORDER}; border-radius:10px;"); card.setFixedHeight(58)
@@ -729,16 +905,56 @@ class HistoriqueDialog(QDialog):
 
     def _pick(self, monday): self.week_selected.emit(monday); self.accept()
 
+
+# ── FlowLayout — layout wrapping automatique ──────────────────────────────────
+class FlowLayout(QLayout):
+    """Layout qui enroule automatiquement les widgets à la ligne."""
+    def __init__(self, parent=None, h_spacing=8, v_spacing=8):
+        super().__init__(parent)
+        self._h = h_spacing; self._v = v_spacing
+        self._items: list = []
+
+    def addItem(self, item): self._items.append(item)
+    def count(self): return len(self._items)
+    def itemAt(self, i): return self._items[i] if 0 <= i < len(self._items) else None
+    def takeAt(self, i):
+        if 0 <= i < len(self._items): return self._items.pop(i)
+        return None
+    def expandingDirections(self): return Qt.Orientation(0)
+    def hasHeightForWidth(self): return True
+    def heightForWidth(self, width): return self._do_layout(QRect(0,0,width,0), dry=True)
+    def setGeometry(self, rect): super().setGeometry(rect); self._do_layout(rect, dry=False)
+    def sizeHint(self): return self.minimumSize()
+    def minimumSize(self):
+        s = QSize()
+        for it in self._items: s = s.expandedTo(it.minimumSize())
+        m = self.contentsMargins()
+        return s + QSize(m.left()+m.right(), m.top()+m.bottom())
+
+    def _do_layout(self, rect, dry):
+        m = self.contentsMargins()
+        x = rect.x() + m.left(); y = rect.y() + m.top()
+        right = rect.right() - m.right()
+        row_h = 0; row_x = x
+        for it in self._items:
+            w = it.sizeHint().width(); h = it.sizeHint().height()
+            if row_x + w > right and row_x != x:
+                row_x = x; y += row_h + self._v; row_h = 0
+            if not dry: it.setGeometry(QRect(QPoint(row_x, y), it.sizeHint()))
+            row_x += w + self._h; row_h = max(row_h, h)
+        return y + row_h - rect.y() + m.bottom()
+
 # ── ParamDialog ────────────────────────────────────────────────────────────────
 class ParamDialog(QDialog):
     saved         = pyqtSignal(dict)
     theme_changed = pyqtSignal(str)
 
-    def __init__(self, parent, settings):
+    def __init__(self, parent, settings, total_global_h=0.0):
         super().__init__(parent)
         self.s = dict(settings)
+        self._total_h = total_global_h
         self.setWindowTitle("Paramètres — Groupe ADE")
-        self.setFixedSize(540, 620)
+        self.setFixedSize(580, 680)
         self.setStyleSheet(ss_base() + f"QDialog {{ background:{BG}; }}")
         root = QVBoxLayout(self); root.setContentsMargins(0,0,0,0); root.setSpacing(0)
         hdr = QFrame(); hdr.setFixedHeight(64)
@@ -779,16 +995,37 @@ class ParamDialog(QDialog):
         bl.addWidget(self._section_header("🎨", "Thème d'affichage"))
         frm3 = card_frame()
         f3l = QVBoxLayout(frm3); f3l.setContentsMargins(16,14,16,16); f3l.setSpacing(10)
+        # Progress unlock
+        next_unlock = self._next_unlock_threshold()
+        if next_unlock:
+            remaining = max(0, next_unlock - self._total_h)
+            unlock_pct = min(100, int(self._total_h / next_unlock * 100)) if next_unlock > 0 else 100
+            unlock_info = lbl(f"🔓 Prochain thème à {next_unlock:.0f}h — encore {fmt_h(remaining)}", 9, color=AMBER)
+            unlock_info.setWordWrap(True); f3l.addWidget(unlock_info)
+            upg = QProgressBar(); upg.setValue(unlock_pct); upg.setFixedHeight(5); upg.setTextVisible(False)
+            upg.setStyleSheet(f"QProgressBar {{ background:{BG}; border-radius:2px; border:none; }} QProgressBar::chunk {{ background:{AMBER}; border-radius:2px; }}")
+            f3l.addWidget(upg)
         f3l.addWidget(lbl("Choisir un thème  (appliqué immédiatement, sans redémarrage)",9,color=TXT3))
         self.theme_combo = QComboBox()
-        for name in THEMES: self.theme_combo.addItem(name)
+        for name, tdata in THEMES.items():
+            locked = not is_theme_unlocked(name, self._total_h)
+            display = name if not locked else f"🔒 {name}  ({tdata.get('unlock_at',0):.0f}h req.)"
+            self.theme_combo.addItem(display, name)
+        # Select current
         cur = self.s.get("theme","Dark Navy")
-        idx = self.theme_combo.findText(cur)
-        if idx >= 0: self.theme_combo.setCurrentIndex(idx)
-        self.theme_combo.currentTextChanged.connect(self._preview_theme)
+        for i in range(self.theme_combo.count()):
+            if self.theme_combo.itemData(i) == cur:
+                self.theme_combo.setCurrentIndex(i); break
+        self.theme_combo.currentIndexChanged.connect(self._on_combo_change)
         f3l.addWidget(self.theme_combo)
-        self.swatch_row = QHBoxLayout(); self.swatch_row.setSpacing(6)
-        self._build_swatches(); f3l.addLayout(self.swatch_row)
+        # Container swatches — wheel bloqué pour ne pas propager au ScrollArea parent
+        self._swatch_container = QWidget()
+        self._swatch_container.setStyleSheet("background:transparent;")
+        self._swatch_container.setFixedHeight(46)
+        self._swatch_container.installEventFilter(self)
+        self.swatch_row = QHBoxLayout(self._swatch_container)
+        self.swatch_row.setContentsMargins(0,4,0,4); self.swatch_row.setSpacing(6)
+        self._build_swatches(); f3l.addWidget(self._swatch_container)
         note = lbl("⚠️ Le thème n'affecte pas le rendu PDF — celui-ci est toujours en mode Dark Navy ADE.",9,color=AMBER)
         note.setWordWrap(True); f3l.addWidget(note)
         bl.addWidget(frm3); bl.addStretch()
@@ -801,6 +1038,19 @@ class ParamDialog(QDialog):
         save_btn.clicked.connect(self._save)
         fw.addWidget(cancel_btn); fw.addWidget(save_btn); root.addWidget(foot_widget)
 
+    def eventFilter(self, obj, event):
+        """Bloque le scroll de la molette sur le container swatches."""
+        from PyQt6.QtCore import QEvent
+        if obj is self._swatch_container and event.type() == QEvent.Type.Wheel:
+            return True  # avalé — ne remonte pas au QScrollArea
+        return super().eventFilter(obj, event)
+
+    def _next_unlock_threshold(self):
+        thresholds = sorted(set(t.get("unlock_at",0) for t in THEMES.values() if t.get("unlock_at",0) > 0))
+        for th in thresholds:
+            if self._total_h < th: return th
+        return None
+
     def _section_header(self, icon, title):
         w = QWidget(); w.setStyleSheet("background:transparent;")
         hl = QHBoxLayout(w); hl.setContentsMargins(0,4,0,0); hl.setSpacing(6)
@@ -810,29 +1060,64 @@ class ParamDialog(QDialog):
         hl.addWidget(sep, 1); return w
 
     def _build_swatches(self):
+        # Vider proprement sans déclencher de relayout intermédiaire
+        self._swatch_container.setUpdatesEnabled(False)
         while self.swatch_row.count():
             item = self.swatch_row.takeAt(0)
-            if item.widget(): item.widget().deleteLater()
-        cur = self.theme_combo.currentText()
+            if item and item.widget(): item.widget().deleteLater()
+        cur_data = self.theme_combo.currentData() or "Dark Navy"
         for name, tdata in THEMES.items():
-            btn = QPushButton(); btn.setFixedSize(40, 30)
-            btn.setToolTip(name); btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            acc = tdata["ACC"]; bg = tdata["BG2"]; card = tdata["CARD"]
+            locked = not is_theme_unlocked(name, self._total_h)
+            btn = QPushButton(); btn.setFixedSize(38, 32)
+            lines = [f"<b>{name}</b>"]
+            if tdata.get("desc"): lines.append(tdata["desc"])
+            if locked: lines.append(f"🔒 Débloqué à {tdata.get('unlock_at',0):.0f}h")
+            btn.setToolTip("<br>".join(lines))
+            btn.setCursor(Qt.CursorShape.ForbiddenCursor if locked else Qt.CursorShape.PointingHandCursor)
+            acc = tdata["ACC"]; bg_t = tdata["BG2"]; card_t = tdata["CARD"]
+            is_cur = (name == cur_data)
             is_light_t = tdata.get("LIGHT", False)
-            border = "2px solid #333" if name==cur and is_light_t else \
-                     "2px solid white" if name==cur else f"1px solid {tdata['BORDER2']}"
+            if is_cur:
+                border = f"2px solid {'#333' if is_light_t else 'white'}"
+            else:
+                border = f"1px solid {tdata['BORDER2']}"
+            opacity = "opacity:0.30;" if locked else ""
             btn.setStyleSheet(f"""
-                QPushButton {{ background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 {bg},stop:0.5 {card},stop:1 {acc});
-                               border:{border}; border-radius:7px; }}
-                QPushButton:hover {{ border:2px solid {acc}; }}
+                QPushButton {{
+                    background:qlineargradient(x1:0,y1:0,x2:1,y2:1,
+                        stop:0 {bg_t}, stop:0.5 {card_t}, stop:1 {acc});
+                    border:{border}; border-radius:8px; {opacity}
+                }}
+                QPushButton:hover {{ border:2px solid {acc if not locked else BORDER}; }}
             """)
-            btn.clicked.connect(lambda _, n=name: self._select_theme(n))
+            if not locked:
+                btn.clicked.connect(lambda _, n=name: self._select_theme(n))
             self.swatch_row.addWidget(btn)
         self.swatch_row.addStretch()
+        self._swatch_container.setUpdatesEnabled(True)
+
+    def _on_combo_change(self, idx):
+        name = self.theme_combo.itemData(idx)
+        if not name: return
+        if not is_theme_unlocked(name, self._total_h):
+            # Revert to current
+            cur = self.s.get("theme","Dark Navy")
+            for i in range(self.theme_combo.count()):
+                if self.theme_combo.itemData(i) == cur:
+                    self.theme_combo.blockSignals(True)
+                    self.theme_combo.setCurrentIndex(i)
+                    self.theme_combo.blockSignals(False)
+                    break
+            req = THEMES[name].get("unlock_at",0)
+            QMessageBox.information(self, "Thème verrouillé 🔒",
+                f"Le thème « {name} » se débloque à {req:.0f}h cumulées.\n\nActuellement : {fmt_h(self._total_h)} enregistrées.")
+            return
+        self._preview_theme(name)
 
     def _select_theme(self, name):
-        idx = self.theme_combo.findText(name)
-        if idx >= 0: self.theme_combo.setCurrentIndex(idx)
+        for i in range(self.theme_combo.count()):
+            if self.theme_combo.itemData(i) == name:
+                self.theme_combo.setCurrentIndex(i); break
 
     def _preview_theme(self, name):
         apply_theme(name); self.s["theme"] = name
@@ -842,7 +1127,7 @@ class ParamDialog(QDialog):
         self.s["employer"]   = self.emp.text().strip()
         self.s["email_dest"] = self.email_dest.text().strip()
         self.s["email_cc"]   = self.email_cc.text().strip()
-        self.s["theme"]      = self.theme_combo.currentText()
+        self.s["theme"]      = self.theme_combo.currentData() or "Dark Navy"
         self.saved.emit(self.s); self.accept()
 
 # ── EnvoiDialog ───────────────────────────────────────────────────────────────
@@ -943,12 +1228,12 @@ class EnvoiDialog(QDialog):
             QMessageBox.critical(self, "Erreur", f"Impossible d'ouvrir le client mail :\n{ex}")
 
 # ╔══════════════════════════════════════════════════════════════╗
-# ║                    STATISTIQUES v2                          ║
+# ║                    STATISTIQUES v3                          ║
 # ╚══════════════════════════════════════════════════════════════╝
 class StatsDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
-        self.setWindowTitle("Statistiques — Groupe ADE"); self.resize(1060, 900)
+        self.setWindowTitle("Statistiques — Groupe ADE"); self.resize(1100, 920)
         self.setMinimumSize(900, 700)
         self.setStyleSheet(ss_base() + f"QDialog {{ background:{BG}; }}")
         self._load(); self._build()
@@ -994,9 +1279,10 @@ class StatsDialog(QDialog):
                     if jt > 0:
                         self.all_day_hours.append(jt)
                         self.jour_counts[j].append(jt)
-                        if jt > 8: self.overtime_h += (jt - 8)
+                        pass  # overtime calculé à la semaine
                     total += jt
                 self.monthly[month_key] = self.monthly.get(month_key,0.0) + total
+                if total > OBJECTIF_H: self.overtime_h += (total - OBJECTIF_H)
                 self.weeks.append({"monday":monday,"label":week_label(monday),"total":total,"jours":jour_h})
             except: pass
 
@@ -1005,7 +1291,7 @@ class StatsDialog(QDialog):
         week_map = {w["monday"].date(): w for w in self.weeks}
         while True:
             wk = week_map.get(check.date())
-            if wk and wk["total"] >= 35: self.streak += 1; check -= timedelta(weeks=1)
+            if wk and wk["total"] >= 40: self.streak += 1; check -= timedelta(weeks=1)
             else: break
         self.best_day_h = max(self.all_day_hours) if self.all_day_hours else 0.0
 
@@ -1025,6 +1311,9 @@ class StatsDialog(QDialog):
             hours_so_far = sum(cw["jours"].get(JOURS[i],0) for i in range(min(day_idx+1,5)))
             avg_daily = sum(self.all_day_hours)/len(self.all_day_hours) if self.all_day_hours else 8.0
             self.projection = hours_so_far + avg_daily * max(0, 4 - day_idx)
+
+        self.total_global = sum(w["total"] for w in self.weeks)
+        self.this_year_h  = sum(w["total"] for w in self.weeks if w["monday"].year == datetime.today().year)
 
     def _build(self):
         lay = QVBoxLayout(self); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
@@ -1074,31 +1363,78 @@ class StatsDialog(QDialog):
         elif idx == 2: self._tab_calendar(cl)
         elif idx == 3: self._tab_trends(cl)
 
+    # ── Vue d'ensemble améliorée ──────────────────────────────────────────────
     def _tab_overview(self, cl):
         if not self.weeks:
             cl.addWidget(lbl("Aucune donnée disponible.",14,color=MUTED)); return
         totals   = [w["total"] for w in self.weeks]
         non_zero = [t for t in totals if t>0]
         best_wk  = max(self.weeks, key=lambda w: w["total"]) if self.weeks else None
-        cl.addWidget(self._sec_title("KPI Principaux"))
+
+        # ── Barre de progression globale ──────────────────────────────────────
+        cl.addWidget(self._sec_title("🌍 Progression globale"))
+        globe_card = card_frame()
+        gl = QVBoxLayout(globe_card); gl.setContentsMargins(18,16,18,16); gl.setSpacing(12)
+
+        # Jauge principale stylisée
+        jauge_row = QHBoxLayout(); jauge_row.setSpacing(16)
+        # Gros chiffre total
+        total_col = QVBoxLayout()
+        tot_lbl = QLabel(fmt_h(self.total_global))
+        tot_lbl.setStyleSheet(f"color:{ACC}; font-size:36px; font-weight:800; background:transparent;")
+        tot_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        sub_lbl = lbl("heures au total", 9, color=TXT3)
+        sub_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        total_col.addWidget(tot_lbl); total_col.addWidget(sub_lbl)
+        jauge_row.addLayout(total_col)
+
+        # Barres de paliers débloquables
+        paliers = [(500,"🟤","Bronze",TIER_COLORS[1]),(1000,"⚪","Argent",TIER_COLORS[2]),
+                   (2000,"🟡","Or",TIER_COLORS[3]),(5000,"🟣","Légendaire","#A78BFA")]
+        paliers_col = QVBoxLayout(); paliers_col.setSpacing(8)
+        for target, ico, label, color in paliers:
+            pct = min(100, int(self.total_global / target * 100))
+            done = self.total_global >= target
+            p_row = QHBoxLayout(); p_row.setSpacing(8)
+            ico_lbl = QLabel(ico); ico_lbl.setFixedWidth(18)
+            ico_lbl.setStyleSheet("background:transparent; font-size:12px;")
+            p_row.addWidget(ico_lbl)
+            p_lbl = lbl(f"{label}  {target:.0f}h", 9, bold=done, color=color if done else TXT3)
+            p_lbl.setFixedWidth(100); p_row.addWidget(p_lbl)
+            pbar = QProgressBar(); pbar.setValue(pct); pbar.setFixedHeight(7); pbar.setTextVisible(False)
+            col_css = color if done else MUTED
+            pbar.setStyleSheet(f"QProgressBar {{ background:{BG2}; border-radius:3px; border:none; }} QProgressBar::chunk {{ background:{col_css}; border-radius:3px; }}")
+            p_row.addWidget(pbar, 1)
+            check = QLabel("✓" if done else f"{fmt_h(self.total_global)}/{target:.0f}h")
+            check.setStyleSheet(f"color:{color if done else TXT3}; font-size:9px; font-weight:700; background:transparent; min-width:60px;")
+            p_row.addWidget(check)
+            paliers_col.addLayout(p_row)
+        jauge_row.addLayout(paliers_col, 1)
+        gl.addLayout(jauge_row)
+        cl.addWidget(globe_card)
+
+        # ── KPIs principaux ───────────────────────────────────────────────────
+        cl.addWidget(self._sec_title("📊 KPI Principaux"))
         cr = QHBoxLayout(); cr.setSpacing(10)
+        avg_h = sum(non_zero)/len(non_zero) if non_zero else 0
         for title, val, color, sub, icon in [
-            ("Total cumulé",   fmt_h(sum(totals)),   ACC,   f"{len(non_zero)} sem. actives","⏱"),
-            ("Moyenne / sem.", fmt_h(sum(non_zero)/len(non_zero)) if non_zero else "–", GREEN, f"sur {len(non_zero)} sem.","📈"),
+            ("Total cumulé",   fmt_h(self.total_global), ACC,   f"{len(non_zero)} sem. actives","⏱"),
+            ("Cette année",    fmt_h(self.this_year_h),  GREEN, f"{datetime.today().year}","📆"),
+            ("Moy. / semaine", fmt_h(avg_h) if avg_h else "–", "#A78BFA", f"sur {len(non_zero)} sem.","📈"),
             ("Meilleure sem.", fmt_h(max(totals)) if totals else "–", AMBER, best_wk["label"] if best_wk and best_wk["total"]>0 else "–","🏆"),
-            ("Sem. actives",   str(len(non_zero)), ACC2 if not IS_LIGHT else ACC, f"sur {len(self.weeks)} total","📅"),
         ]:
             cr.addWidget(self._kpi_card(title, val, color, sub, icon))
         cl.addLayout(cr)
+
         cr2 = QHBoxLayout(); cr2.setSpacing(10)
         streak_col = GREEN if self.streak >= 4 else AMBER if self.streak >= 1 else MUTED
         cr2.addWidget(self._kpi_card("Série en cours", f"{self.streak} sem." if self.streak else "–",
-            streak_col, "sem. complètes (≥35h) consécutives","🔥"))
+            streak_col, "sem. ≥40h de suite","🔥"))
         cr2.addWidget(self._kpi_card("Record journalier", fmt_h(self.best_day_h) if self.best_day_h else "–",
-            ACC2 if not IS_LIGHT else ACC, "meilleure journée toutes semaines","⚡"))
+            ACC2 if not IS_LIGHT else ACC, "meilleure journée","⚡"))
         ot_col = AMBER if self.overtime_h > 0 else MUTED
         cr2.addWidget(self._kpi_card("Heures supp.", fmt_h(self.overtime_h) if self.overtime_h else "–",
-            ot_col, "total heures > 8h/jour","🕐"))
+            ot_col, "total >40h/sem.","🕐"))
         total_dist = self.matin_h + self.aprem_h
         if total_dist > 0:
             mat_pct = int(self.matin_h / total_dist * 100)
@@ -1108,69 +1444,99 @@ class StatsDialog(QDialog):
             cr2.addWidget(self._kpi_card("Distribution", "–", MUTED, "données insuffisantes","🌅"))
         cl.addLayout(cr2)
 
-        cl.addWidget(self._sec_title("Moyenne par jour de la semaine"))
-        dc = card_frame(); dl = QVBoxLayout(dc); dl.setContentsMargins(16,14,16,14); dl.setSpacing(10)
+        # ── Moyenne par jour ──────────────────────────────────────────────────
+        cl.addWidget(self._sec_title("📅 Moyenne par jour de la semaine"))
+        dc = card_frame(); dl = QVBoxLayout(dc); dl.setContentsMargins(16,14,16,14); dl.setSpacing(8)
         avgs = {j:(sum(self.jour_counts[j])/len(self.jour_counts[j]) if self.jour_counts[j] else 0) for j in JOURS}
         max_avg = max(avgs.values()) or 1
         best_jour = max(avgs, key=avgs.get) if any(avgs.values()) else ""
         for j in JOURS:
             avg = avgs[j]; is_best = (j == best_jour and avg > 0)
             r = QHBoxLayout(); r.setSpacing(10)
-            jl = lbl(j,11,color=TXT2); jl.setFixedWidth(80); r.addWidget(jl)
-            prog_color = GREEN if is_best else f"qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {ACC3},stop:1 {ACC})"
+            # Pastille couleur jour
+            dot_colors = {"Lundi":"#4F8EF7","Mardi":"#34D399","Mercredi":"#FBBF24","Jeudi":"#A78BFA","Vendredi":"#F472B6"}
+            dot = QFrame(); dot.setFixedSize(10,10)
+            dot.setStyleSheet(f"background:{dot_colors.get(j,ACC)}; border-radius:5px;")
+            r.addWidget(dot)
+            jl = lbl(j,11,bold=is_best,color=TXT if is_best else TXT2); jl.setFixedWidth(76); r.addWidget(jl)
+            prog_color = GREEN if is_best else dot_colors.get(j,ACC)
             prog = QProgressBar(); prog.setValue(int(avg/max_avg*100) if avg else 0)
             prog.setFixedHeight(10); prog.setTextVisible(False)
             prog.setStyleSheet(f"QProgressBar {{ background:{BG2}; border-radius:5px; border:none; }} QProgressBar::chunk {{ background:{prog_color}; border-radius:5px; }}")
             r.addWidget(prog,1)
-            cnt_lbl = lbl(f"({len(self.jour_counts[j])} j.)",9,color=TXT3); cnt_lbl.setFixedWidth(40); r.addWidget(cnt_lbl)
-            val_lbl = lbl(fmt_h(avg) if avg else "–", 11, bold=True, color=GREEN if is_best else (ACC if IS_LIGHT else ACC2) if avg else MUTED)
-            r.addWidget(val_lbl)
-            if is_best: r.addWidget(lbl("★",10,color=GREEN))
+            cnt_lbl = lbl(f"{len(self.jour_counts[j])} j.",9,color=TXT3); cnt_lbl.setFixedWidth(36); r.addWidget(cnt_lbl)
+            val_lbl = lbl(fmt_h(avg) if avg else "–", 11, bold=True, color=GREEN if is_best else (ACC if IS_LIGHT else dot_colors.get(j,ACC2)) if avg else MUTED)
+            val_lbl.setFixedWidth(48); r.addWidget(val_lbl)
+            if is_best: r.addWidget(lbl("⭐",10,color=GREEN))
             dl.addLayout(r)
         cl.addWidget(dc)
 
-        cl.addWidget(self._sec_title("Distribution des semaines"))
-        distr = card_frame(); drl = QHBoxLayout(distr); drl.setContentsMargins(16,14,16,14); drl.setSpacing(16)
-        buckets = {"< 20h":0,"20–35h":0,"35–40h":0,"≥ 40h":0}
-        for t in totals:
-            if t < 20: buckets["< 20h"] += 1
-            elif t < 35: buckets["20–35h"] += 1
-            elif t < 40: buckets["35–40h"] += 1
-            else: buckets["≥ 40h"] += 1
-        for (label, cnt), color in zip(buckets.items(), [RED, AMBER, ACC, GREEN]):
+        # ── Distribution des semaines ─────────────────────────────────────────
+        cl.addWidget(self._sec_title("📦 Distribution des semaines"))
+        distr = card_frame(); drl = QHBoxLayout(distr); drl.setContentsMargins(16,14,16,14); drl.setSpacing(0)
+        buckets = [("< 20h",0,RED),("20–39h",0,AMBER),("40–44h",0,ACC),("≥ 45h",0,GREEN)]
+        totals_copy = totals[:]
+        for t in totals_copy:
+            if t < 20: buckets[0] = (buckets[0][0], buckets[0][1]+1, buckets[0][2])
+            elif t < 40: buckets[1] = (buckets[1][0], buckets[1][1]+1, buckets[1][2])
+            elif t < 45: buckets[2] = (buckets[2][0], buckets[2][1]+1, buckets[2][2])
+            else: buckets[3] = (buckets[3][0], buckets[3][1]+1, buckets[3][2])
+        bar_max = max(cnt for _,cnt,_ in buckets) or 1
+        BAR_H = 70
+        for label, cnt, color in buckets:
             bw = QWidget(); bw.setStyleSheet("background:transparent;")
-            bwl = QVBoxLayout(bw); bwl.setContentsMargins(0,0,0,0); bwl.setSpacing(4); bwl.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-            val_l = lbl(str(cnt),20,bold=True,color=color); val_l.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            bwl = QVBoxLayout(bw); bwl.setContentsMargins(8,0,8,0); bwl.setSpacing(4)
+            bwl.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
+            # Barre verticale
+            bar_container = QWidget(); bar_container.setFixedHeight(BAR_H)
+            bar_container.setStyleSheet("background:transparent;")
+            bcl = QVBoxLayout(bar_container); bcl.setContentsMargins(0,0,0,0)
+            bcl.setAlignment(Qt.AlignmentFlag.AlignBottom)
+            if cnt > 0:
+                h = max(6, int(cnt/bar_max*BAR_H))
+                bar = QFrame(); bar.setFixedHeight(h)
+                bar.setStyleSheet(f"background:{color}; border-radius:4px 4px 0 0;")
+                bcl.addWidget(bar)
+            bwl.addWidget(bar_container)
+            val_l = lbl(str(cnt),18,bold=True,color=color); val_l.setAlignment(Qt.AlignmentFlag.AlignHCenter)
             name_l = lbl(label,10,color=TXT2); name_l.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-            pct_l  = lbl(f"{cnt/len(totals)*100:.0f}%" if totals else "–",9,color=TXT3); pct_l.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            pct_l  = lbl(f"{cnt/len(totals_copy)*100:.0f}%" if totals_copy else "–",9,color=TXT3)
+            pct_l.setAlignment(Qt.AlignmentFlag.AlignHCenter)
             bwl.addWidget(val_l); bwl.addWidget(name_l); bwl.addWidget(pct_l)
             drl.addWidget(bw,1)
         cl.addWidget(distr)
 
-        cl.addWidget(self._sec_title("Détail par semaine (10 dernières)"))
-        tc3 = card_frame(); tl3 = QVBoxLayout(tc3); tl3.setContentsMargins(16,14,16,14); tl3.setSpacing(0)
-        hd = QFrame(); hd.setStyleSheet(f"background:{CARD2}; border-radius:7px;")
-        hdl = QHBoxLayout(hd); hdl.setContentsMargins(12,6,10,6); hdl.setSpacing(4)
-        for txt, w in [("Semaine",0),("Lun",60),("Mar",60),("Mer",60),("Jeu",60),("Ven",60),("Total",80),("Statut",70)]:
+        # ── Tableau 10 dernières semaines ─────────────────────────────────────
+        cl.addWidget(self._sec_title("📋 Détail par semaine (10 dernières)"))
+        tc3 = card_frame(); tl3 = QVBoxLayout(tc3); tl3.setContentsMargins(0,0,0,8); tl3.setSpacing(0)
+        hd = QFrame(); hd.setStyleSheet(f"background:{CARD2}; border-radius:12px 12px 0 0;")
+        hdl = QHBoxLayout(hd); hdl.setContentsMargins(14,8,12,8); hdl.setSpacing(4)
+        for txt, w in [("Semaine",0),("Lun",56),("Mar",56),("Mer",56),("Jeu",56),("Ven",56),("Total",72),("Statut",80)]:
             lh = QLabel(txt); lh.setStyleSheet(f"color:{TXT3}; font-size:9px; font-weight:700; letter-spacing:1px; background:transparent;")
             if w: lh.setFixedWidth(w)
             else: lh.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             hdl.addWidget(lh)
         tl3.addWidget(hd)
         for i, wk in enumerate(list(reversed(self.weeks))[:10]):
-            row = QFrame(); row.setStyleSheet(f"background:{ROW if i%2==0 else CARD}; border-radius:0;"); row.setFixedHeight(34)
-            rl2 = QHBoxLayout(row); rl2.setContentsMargins(12,0,10,0); rl2.setSpacing(4)
+            row = QFrame()
+            row.setStyleSheet(f"background:{ROW if i%2==0 else CARD}; border:none;"); row.setFixedHeight(34)
+            rl2 = QHBoxLayout(row); rl2.setContentsMargins(14,0,12,0); rl2.setSpacing(4)
             rl2.addWidget(lbl(wk["label"],10))
             for j in JOURS:
-                v=wk["jours"].get(j,0); col = GREEN if v>=7 else TXT2 if v>0 else MUTED
-                l2 = lbl(fmt_h(v) if v else "–",10,color=col); l2.setFixedWidth(60); rl2.addWidget(l2)
-            tc_col = GREEN if wk["total"]>=35 else AMBER if wk["total"]>0 else MUTED
-            tl_r = lbl(fmt_h(wk["total"]) if wk["total"] else "–",10,bold=True,color=tc_col); tl_r.setFixedWidth(80); rl2.addWidget(tl_r)
-            if wk["total"] >= 40:   status, sc = "⚡ Sup.", AMBER
-            elif wk["total"] >= 35: status, sc = "✓ Complet", GREEN
-            elif wk["total"] > 0:   status, sc = "⚠ Partiel", AMBER
-            else:                    status, sc = "○ Vide", MUTED
-            sl = lbl(status, 9, color=sc); sl.setFixedWidth(70); rl2.addWidget(sl)
+                v=wk["jours"].get(j,0)
+                col = GREEN if v>=8 else ACC if v>=7 else AMBER if v>0 else MUTED
+                l2 = lbl(fmt_h(v) if v else "–",10,color=col); l2.setFixedWidth(56); rl2.addWidget(l2)
+            tc_col = GREEN if wk["total"]>=40 else AMBER if wk["total"]>0 else MUTED
+            tl_r = lbl(fmt_h(wk["total"]) if wk["total"] else "–",10,bold=True,color=tc_col); tl_r.setFixedWidth(72); rl2.addWidget(tl_r)
+            if wk["total"] >= 40:   status, sc, sicon = "Sup.+", AMBER, "⚡"
+            elif wk["total"] >= 40: status, sc, sicon = "Complet", GREEN, "✓"
+            elif wk["total"] > 0:   status, sc, sicon = "Partiel", AMBER, "⚠"
+            else:                    status, sc, sicon = "Vide", MUTED, "○"
+            status_badge = QFrame(); status_badge.setFixedSize(76, 20)
+            status_badge.setStyleSheet(f"background:{sc}22; border:1px solid {sc}44; border-radius:5px;")
+            sbl = QHBoxLayout(status_badge); sbl.setContentsMargins(4,0,4,0); sbl.setSpacing(3)
+            sbl.addWidget(lbl(sicon,8,color=sc)); sbl.addWidget(lbl(status,8,bold=True,color=sc))
+            rl2.addWidget(status_badge)
             tl3.addWidget(row)
         cl.addWidget(tc3)
 
@@ -1244,7 +1610,7 @@ class StatsDialog(QDialog):
                     hl2.setStyleSheet(f"color:{'white' if not IS_LIGHT else BG}; font-size:8px; font-weight:700; background:transparent;")
                     cell_l.addWidget(hl2)
                 row.addWidget(cell)
-            tot_c = GREEN if wk["total"]>=35 else AMBER if wk["total"]>0 else MUTED
+            tot_c = GREEN if wk["total"]>=40 else AMBER if wk["total"]>0 else MUTED
             tl_lbl = lbl(fmt_h(wk["total"]) if wk["total"] else "–",9,bold=True,color=tot_c); tl_lbl.setFixedWidth(40)
             row.addWidget(tl_lbl); row.addStretch(); hl_out.addLayout(row)
         cl.addWidget(heat_card)
@@ -1260,7 +1626,7 @@ class StatsDialog(QDialog):
                 ml2 = lbl(mname,11,color=TXT2); ml2.setFixedWidth(120); r.addWidget(ml2)
                 prog = QProgressBar(); prog.setValue(int(h/max_m*100) if max_m else 0)
                 prog.setFixedHeight(8); prog.setTextVisible(False)
-                col = GREEN if h >= 140 else ACC if h >= 100 else AMBER
+                col = GREEN if h >= 160 else ACC if h >= 120 else AMBER
                 prog.setStyleSheet(f"QProgressBar {{ background:{BG2}; border-radius:4px; border:none; }} QProgressBar::chunk {{ background:{col}; border-radius:4px; }}")
                 r.addWidget(prog, 1); r.addWidget(lbl(fmt_h(h),11,bold=True,color=col))
                 ml.addLayout(r)
@@ -1283,7 +1649,7 @@ class StatsDialog(QDialog):
             self._kpi_card("4 sem. précédentes", fmt_h(self.trend_prev) if self.trend_prev else "–", TXT2, "référence","📋"),
             self._kpi_card("Évolution", f"{arrow} {abs(delta_pct):.1f}%", arrow_col, f"{'+' if delta>0 else ''}{fmt_h(abs(delta))} en moyenne","📈"),
             self._kpi_card("Projection sem.", fmt_h(self.projection) if self.projection > 0 else "–",
-                GREEN if self.projection >= 35 else AMBER if self.projection > 0 else MUTED,
+                GREEN if self.projection >= 40 else AMBER if self.projection > 0 else MUTED,
                 "estimation semaine en cours","🔮"),
         ): trl.addWidget(k, 1)
         cl.addWidget(trend_card)
@@ -1300,7 +1666,7 @@ class StatsDialog(QDialog):
             col_l = QVBoxLayout(col_w); col_l.setContentsMargins(0,0,0,0); col_l.setSpacing(2)
             col_l.setAlignment(Qt.AlignmentFlag.AlignBottom)
             bar_h = max(4, int(wk["total"] / max_t * BAR_MAX)); t = wk["total"]
-            bar_col = GREEN if t>=40 else ACC if t>=35 else AMBER if t>0 else MUTED
+            bar_col = GREEN if t>=45 else ACC if t>=40 else AMBER if t>0 else MUTED
             col_l.addWidget(QWidget()); col_l.itemAt(0).widget().setFixedSize(26, BAR_MAX - bar_h)
             col_l.itemAt(0).widget().setStyleSheet("background:transparent;")
             bar = QFrame(); bar.setFixedSize(26, bar_h)
@@ -1314,7 +1680,7 @@ class StatsDialog(QDialog):
             bars_row.addWidget(col_w)
         bars_row.addStretch(); chart_l.addLayout(bars_row)
         ref_line = QFrame(); ref_line.setFixedHeight(1); ref_line.setStyleSheet(f"background:{GREEN}; margin:4px 0;")
-        chart_l.addWidget(ref_line); chart_l.addWidget(lbl("── Objectif 35h",9,color=GREEN))
+        chart_l.addWidget(ref_line); chart_l.addWidget(lbl("── Objectif 40h",9,color=GREEN))
         cl.addWidget(chart_card)
 
         cl.addWidget(self._sec_title("Insights automatiques"))
@@ -1337,17 +1703,17 @@ class StatsDialog(QDialog):
         non_zero = [t for t in totals if t > 0]
         avg = sum(non_zero)/len(non_zero) if non_zero else 0
         if self.streak >= 4:
-            insights.append(("🔥", f"Série impressionnante ! {self.streak} semaines consécutives de 35h+. Excellent rythme.", GREEN))
+            insights.append(("🔥", f"Série impressionnante ! {self.streak} semaines consécutives de 40h+. Excellent rythme.", GREEN))
         elif self.streak >= 2:
-            insights.append(("🔥", f"{self.streak} semaines consécutives complètes. Continuez !", AMBER))
-        if avg >= 38:
-            insights.append(("💪", f"Moyenne de {fmt_h(avg)} — Tu dépasses régulièrement les 35h. Attention à l'équilibre.", AMBER))
-        elif avg >= 35:
-            insights.append(("✅", f"Moyenne de {fmt_h(avg)} — Tu atteins l'objectif de 35h/sem. en moyenne. Bravo !", GREEN))
+            insights.append(("🔥", f"{self.streak} semaines complètes (≥40h) de suite. Continuez !", AMBER))
+        if avg >= 43:
+            insights.append(("💪", f"Moyenne de {fmt_h(avg)} — Tu dépasses régulièrement les 40h. Attention à l'équilibre.", AMBER))
+        elif avg >= 40:
+            insights.append(("✅", f"Moyenne de {fmt_h(avg)} — Tu atteins l'objectif de 40h/sem. en moyenne. Bravo !", GREEN))
         elif avg > 0:
-            insights.append(("📉", f"Moyenne de {fmt_h(avg)} — Il manque en moyenne {fmt_h(35-avg)} pour atteindre 35h.", RED))
-        if self.overtime_h > 20:
-            insights.append(("⏰", f"{fmt_h(self.overtime_h)} d'heures supplémentaires (>8h/jour) accumulées au total.", AMBER))
+            insights.append(("📉", f"Moyenne de {fmt_h(avg)} — Il manque en moyenne {fmt_h(40-avg)} pour atteindre 40h.", RED))
+        if self.overtime_h > 10:
+            insights.append(("⏰", f"{fmt_h(self.overtime_h)} d'heures supplémentaires (>40h/sem.) accumulées au total.", AMBER))
         total_dist = self.matin_h + self.aprem_h
         if total_dist > 0:
             mat_pct = self.matin_h / total_dist * 100
@@ -1369,10 +1735,13 @@ class StatsDialog(QDialog):
         w = QWidget(); w.setStyleSheet("background:transparent;")
         hl = QHBoxLayout(w); hl.setContentsMargins(2,4,0,0); hl.setSpacing(8)
         dot = QFrame(); dot.setFixedSize(6,6); dot.setStyleSheet(f"background:{ACC}; border-radius:3px;")
-        hl.addWidget(dot); hl.addWidget(lbl(text,11,bold=True)); hl.addStretch(); return w
+        line = QFrame(); line.setFrameShape(QFrame.Shape.HLine)
+        line.setStyleSheet(f"background:{BORDER}; border:none;"); line.setFixedHeight(1)
+        hl.addWidget(dot); hl.addWidget(lbl(text,11,bold=True,color=TXT))
+        hl.addSpacing(6); hl.addWidget(line,1); return w
 
     def _kpi_card(self, title, val, color, sub, icon):
-        c = QFrame(); c.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-top:3px solid {color}; border-radius:12px;")
+        c = QFrame(); c.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-top:4px solid {color}; border-radius:14px;")
         cv = QVBoxLayout(c); cv.setContentsMargins(14,12,14,12); cv.setSpacing(3)
         th = QHBoxLayout(); th.addWidget(lbl(title,10,bold=True,color=TXT2)); th.addStretch(); th.addWidget(QLabel(icon))
         cv.addLayout(th); cv.addWidget(lbl(val,20,bold=True,color=color)); cv.addWidget(lbl(sub,9,color=TXT3))
@@ -1411,51 +1780,73 @@ class StatsDialog(QDialog):
         fl.addWidget(lbl(f"{DEV_CREDIT}  ·  {COPYRIGHT}",9,color=TXT3)); lay.addWidget(foot)
 
 # ╔══════════════════════════════════════════════════════════════╗
-# ║              SYSTÈME D'ACHIEVEMENTS / BADGES                ║
+# ║          SYSTÈME D'ACHIEVEMENTS / BADGES v2                 ║
 # ╚══════════════════════════════════════════════════════════════╝
 
 ACHIEVEMENTS_DEF = [
     # ── Semaine ──────────────────────────────────────────────────────
-    {"id":"sem_35",     "icon":"✅", "titre":"Semaine complète",      "desc":"35h dans une semaine",              "type":"semaine",     "seuil":35,   "color":"#34D399", "tier":1},
-    {"id":"sem_40",     "icon":"💪", "titre":"Au-delà des limites",   "desc":"40h dans une semaine",              "type":"semaine",     "seuil":40,   "color":"#4F8EF7", "tier":2},
-    {"id":"sem_45",     "icon":"🔥", "titre":"En feu !",              "desc":"45h dans une semaine",              "type":"semaine",     "seuil":45,   "color":"#FB923C", "tier":2},
-    {"id":"sem_50",     "icon":"⚡", "titre":"Mode turbo",            "desc":"50h dans une semaine",              "type":"semaine",     "seuil":50,   "color":"#FBBF24", "tier":3},
-    {"id":"sem_60",     "icon":"🚀", "titre":"Workaholique",          "desc":"60h dans une semaine",              "type":"semaine",     "seuil":60,   "color":"#F472B6", "tier":3},
+    {"id":"sem_30",      "icon":"🌱", "titre":"Premier pas",           "desc":"30h dans une semaine",               "type":"semaine",      "seuil":30,   "color":"#86EFAC", "tier":1},
+    {"id":"sem_35",      "icon":"💼", "titre":"Bonne semaine",           "desc":"35h dans une semaine",               "type":"semaine",      "seuil":35,   "color":"#34D399", "tier":1},
+    {"id":"sem_40",      "icon":"✅", "titre":"Semaine complète",        "desc":"40h — semaine standard",               "type":"semaine",      "seuil":40,   "color":"#4F8EF7", "tier":2},
+    {"id":"sem_45",      "icon":"🔥", "titre":"En feu !",               "desc":"45h dans une semaine",               "type":"semaine",      "seuil":45,   "color":"#FB923C", "tier":2},
+    {"id":"sem_50",      "icon":"⚡", "titre":"Mode turbo",             "desc":"50h dans une semaine",               "type":"semaine",      "seuil":50,   "color":"#FBBF24", "tier":3},
+    {"id":"sem_55",      "icon":"🌋", "titre":"Éruption totale",        "desc":"55h dans une semaine",               "type":"semaine",      "seuil":55,   "color":"#F472B6", "tier":3},
+    {"id":"sem_60",      "icon":"🚀", "titre":"Workaholique",           "desc":"60h dans une semaine",               "type":"semaine",      "seuil":60,   "color":"#A78BFA", "tier":3},
+    # ── Journée ──────────────────────────────────────────────────────
+    {"id":"jour_8",      "icon":"🌞", "titre":"Journée pleine",         "desc":"8h en une seule journée",            "type":"jour_single",  "seuil":8,    "color":"#FCD34D", "tier":1},
+    {"id":"jour_10",     "icon":"💡", "titre":"Noctambule",             "desc":"10h en une seule journée",           "type":"jour_single",  "seuil":10,   "color":"#818CF8", "tier":2},
+    {"id":"jour_12",     "icon":"🌙", "titre":"Nuit blanche",           "desc":"12h en une seule journée",           "type":"jour_single",  "seuil":12,   "color":"#6366F1", "tier":3},
     # ── Série ────────────────────────────────────────────────────────
-    {"id":"serie_2",    "icon":"🔗", "titre":"Dans le rythme",        "desc":"2 semaines complètes de suite",     "type":"serie",       "seuil":2,    "color":"#34D399", "tier":1},
-    {"id":"serie_4",    "icon":"📅", "titre":"Un mois solide",        "desc":"4 semaines complètes de suite",     "type":"serie",       "seuil":4,    "color":"#4F8EF7", "tier":2},
-    {"id":"serie_8",    "icon":"🏅", "titre":"Deux mois non-stop",    "desc":"8 semaines complètes de suite",     "type":"serie",       "seuil":8,    "color":"#FB923C", "tier":2},
-    {"id":"serie_12",   "icon":"👑", "titre":"Trimestre parfait",     "desc":"12 semaines de suite",              "type":"serie",       "seuil":12,   "color":"#FBBF24", "tier":3},
-    {"id":"serie_26",   "icon":"🌟", "titre":"Demi-année légendaire", "desc":"26 semaines de suite",              "type":"serie",       "seuil":26,   "color":"#A78BFA", "tier":3},
+    {"id":"serie_2",     "icon":"🔗", "titre":"Dans le rythme",         "desc":"2 semaines complètes (≥40h) de suite",      "type":"serie",        "seuil":2,    "color":"#34D399", "tier":1},
+    {"id":"serie_4",     "icon":"📅", "titre":"Un mois solide",         "desc":"4 semaines complètes (≥40h) de suite",      "type":"serie",        "seuil":4,    "color":"#4F8EF7", "tier":2},
+    {"id":"serie_8",     "icon":"🏅", "titre":"Deux mois non-stop",     "desc":"8 semaines complètes (≥40h) de suite",      "type":"serie",        "seuil":8,    "color":"#FB923C", "tier":2},
+    {"id":"serie_12",    "icon":"👑", "titre":"Trimestre parfait",      "desc":"12 semaines ≥40h de suite",               "type":"serie",        "seuil":12,   "color":"#FBBF24", "tier":3},
+    {"id":"serie_26",    "icon":"🌟", "titre":"Demi-année légendaire",  "desc":"26 semaines ≥40h de suite",               "type":"serie",        "seuil":26,   "color":"#A78BFA", "tier":3},
+    {"id":"serie_52",    "icon":"🎖️","titre":"L'Indestructible",        "desc":"52 semaines ≥40h de suite — 1 an !",      "type":"serie",        "seuil":52,   "color":"#F472B6", "tier":3},
     # ── Annuel ───────────────────────────────────────────────────────
-    {"id":"an_100",     "icon":"💯", "titre":"Centenaire",            "desc":"100h dans l'année",                 "type":"annuel",      "seuil":100,  "color":"#34D399", "tier":1},
-    {"id":"an_200",     "icon":"📈", "titre":"200h !",                "desc":"200h dans l'année",                 "type":"annuel",      "seuil":200,  "color":"#4F8EF7", "tier":1},
-    {"id":"an_500",     "icon":"🏆", "titre":"Demi-millénaire",       "desc":"500h dans l'année",                 "type":"annuel",      "seuil":500,  "color":"#FB923C", "tier":2},
-    {"id":"an_1000",    "icon":"💎", "titre":"Millénaire",            "desc":"1000h dans l'année",                "type":"annuel",      "seuil":1000, "color":"#FBBF24", "tier":2},
-    {"id":"an_1500",    "icon":"🌙", "titre":"Nuit et jour",          "desc":"1500h dans l'année",                "type":"annuel",      "seuil":1500, "color":"#A78BFA", "tier":3},
-    {"id":"an_2000",    "icon":"🎯", "titre":"Perfectionniste",       "desc":"2000h dans l'année",                "type":"annuel",      "seuil":2000, "color":"#F472B6", "tier":3},
+    {"id":"an_100",      "icon":"💯", "titre":"Centenaire",             "desc":"100h dans l'année",                  "type":"annuel",       "seuil":100,  "color":"#34D399", "tier":1},
+    {"id":"an_200",      "icon":"📈", "titre":"200h !",                 "desc":"200h dans l'année",                  "type":"annuel",       "seuil":200,  "color":"#4F8EF7", "tier":1},
+    {"id":"an_500",      "icon":"🏆", "titre":"Demi-millénaire",        "desc":"500h dans l'année",                  "type":"annuel",       "seuil":500,  "color":"#FB923C", "tier":2},
+    {"id":"an_750",      "icon":"🎯", "titre":"750h annuelles",         "desc":"750h dans l'année",                  "type":"annuel",       "seuil":750,  "color":"#FBBF24", "tier":2},
+    {"id":"an_1000",     "icon":"💎", "titre":"Millénaire",             "desc":"1000h dans l'année",                 "type":"annuel",       "seuil":1000, "color":"#FBBF24", "tier":2},
+    {"id":"an_1500",     "icon":"🌙", "titre":"Nuit et jour",           "desc":"1500h dans l'année",                 "type":"annuel",       "seuil":1500, "color":"#A78BFA", "tier":3},
+    {"id":"an_2000",     "icon":"🎖️","titre":"Perfectionniste annuel",  "desc":"2000h dans l'année",                 "type":"annuel",       "seuil":2000, "color":"#F472B6", "tier":3},
     # ── Global ───────────────────────────────────────────────────────
-    {"id":"gl_500",     "icon":"🥉", "titre":"Apprenti",              "desc":"500h enregistrées au total",        "type":"global",      "seuil":500,  "color":"#CD7F32", "tier":1},
-    {"id":"gl_1000",    "icon":"🥈", "titre":"Confirmé",              "desc":"1000h au total",                    "type":"global",      "seuil":1000, "color":"#C0C0C0", "tier":2},
-    {"id":"gl_2000",    "icon":"🥇", "titre":"Expert",                "desc":"2000h au total",                    "type":"global",      "seuil":2000, "color":"#FFD700", "tier":2},
-    {"id":"gl_5000",    "icon":"🏛️","titre":"Légende ADE",            "desc":"5000h au total",                    "type":"global",      "seuil":5000, "color":"#A78BFA", "tier":3},
+    {"id":"gl_100",      "icon":"🌱", "titre":"Début du voyage",        "desc":"100h enregistrées au total",         "type":"global",       "seuil":100,  "color":"#86EFAC", "tier":1},
+    {"id":"gl_250",      "icon":"🚶","titre":"En route",                "desc":"250h au total",                      "type":"global",       "seuil":250,  "color":"#6EE7B7", "tier":1},
+    {"id":"gl_500",      "icon":"🥉", "titre":"Apprenti",               "desc":"500h enregistrées au total",         "type":"global",       "seuil":500,  "color":"#CD7F32", "tier":1},
+    {"id":"gl_1000",     "icon":"🥈", "titre":"Confirmé",               "desc":"1000h au total",                     "type":"global",       "seuil":1000, "color":"#C0C0C0", "tier":2},
+    {"id":"gl_1500",     "icon":"🏛️","titre":"Expert ADE",              "desc":"1500h au total",                     "type":"global",       "seuil":1500, "color":"#D4A820", "tier":2},
+    {"id":"gl_2000",     "icon":"🥇", "titre":"Maître",                 "desc":"2000h au total",                     "type":"global",       "seuil":2000, "color":"#FFD700", "tier":2},
+    {"id":"gl_3000",     "icon":"💎", "titre":"Grand maître",           "desc":"3000h au total",                     "type":"global",       "seuil":3000, "color":"#22D3EE", "tier":3},
+    {"id":"gl_5000",     "icon":"🏛️","titre":"Légende ADE",             "desc":"5000h au total",                     "type":"global",       "seuil":5000, "color":"#A78BFA", "tier":3},
+    {"id":"gl_10000",    "icon":"⚡", "titre":"Transcendance",          "desc":"10 000h au total — mythique",         "type":"global",       "seuil":10000,"color":"#F472B6", "tier":3},
     # ── Spéciaux ─────────────────────────────────────────────────────
-    {"id":"sp_5sem",    "icon":"🗓️","titre":"Fidèle",                 "desc":"5 semaines enregistrées",           "type":"nb_sem",      "seuil":5,    "color":"#34D399", "tier":1},
-    {"id":"sp_20sem",   "icon":"📋", "titre":"Régulier",              "desc":"20 semaines enregistrées",          "type":"nb_sem",      "seuil":20,   "color":"#4F8EF7", "tier":2},
-    {"id":"sp_50sem",   "icon":"📚", "titre":"Vétéran",               "desc":"50 semaines enregistrées",          "type":"nb_sem",      "seuil":50,   "color":"#FBBF24", "tier":3},
-    {"id":"sp_lundi",   "icon":"🌅", "titre":"Lève-tôt",              "desc":"Journée de lundi ≥ 9h",             "type":"jour_max",    "seuil":9,    "color":"#22D3EE", "tier":1, "jour":"Lundi"},
-    {"id":"sp_vendredi","icon":"🎉", "titre":"TGIF marathon",         "desc":"Journée de vendredi ≥ 9h",          "type":"jour_max",    "seuil":9,    "color":"#F472B6", "tier":1, "jour":"Vendredi"},
-    {"id":"sp_parfait", "icon":"⭐", "titre":"Semaine parfaite",      "desc":"5h+ chaque jour de la semaine",     "type":"sem_parfaite","seuil":5,    "color":"#FBBF24", "tier":3},
+    {"id":"sp_1sem",     "icon":"🎉", "titre":"La première fois",       "desc":"1ère semaine enregistrée",           "type":"nb_sem",       "seuil":1,    "color":"#86EFAC", "tier":1},
+    {"id":"sp_5sem",     "icon":"🗓️","titre":"Fidèle",                  "desc":"5 semaines enregistrées",            "type":"nb_sem",       "seuil":5,    "color":"#34D399", "tier":1},
+    {"id":"sp_10sem",    "icon":"📖", "titre":"Assidu",                  "desc":"10 semaines enregistrées",           "type":"nb_sem",       "seuil":10,   "color":"#38BDF8", "tier":1},
+    {"id":"sp_20sem",    "icon":"📋", "titre":"Régulier",               "desc":"20 semaines enregistrées",           "type":"nb_sem",       "seuil":20,   "color":"#4F8EF7", "tier":2},
+    {"id":"sp_50sem",    "icon":"📚", "titre":"Vétéran",                "desc":"50 semaines enregistrées",           "type":"nb_sem",       "seuil":50,   "color":"#FBBF24", "tier":3},
+    {"id":"sp_100sem",   "icon":"🏆", "titre":"Centurion",              "desc":"100 semaines enregistrées",          "type":"nb_sem",       "seuil":100,  "color":"#F472B6", "tier":3},
+    {"id":"sp_lundi",    "icon":"🌅", "titre":"Lève-tôt du lundi",      "desc":"Journée de lundi ≥ 9h",              "type":"jour_max",     "seuil":9,    "color":"#22D3EE", "tier":1, "jour":"Lundi"},
+    {"id":"sp_vendredi", "icon":"🎉", "titre":"TGIF marathon",          "desc":"Journée de vendredi ≥ 9h",           "type":"jour_max",     "seuil":9,    "color":"#F472B6", "tier":1, "jour":"Vendredi"},
+    {"id":"sp_mercredi", "icon":"🐪", "titre":"Hump Day Hero",          "desc":"Journée de mercredi ≥ 10h",          "type":"jour_max",     "seuil":10,   "color":"#FBBF24", "tier":2, "jour":"Mercredi"},
+    {"id":"sp_parfait",  "icon":"⭐", "titre":"Semaine parfaite",       "desc":"5h+ chaque jour lun-ven",      "type":"sem_parfaite", "seuil":5,    "color":"#FBBF24", "tier":3},
+    {"id":"sp_super",    "icon":"🦸", "titre":"Semaine de super-héros", "desc":"7h+ chaque jour lun-ven",      "type":"sem_parfaite", "seuil":7,    "color":"#F472B6", "tier":3},
+    {"id":"sp_3proj",    "icon":"🎭", "titre":"Multi-casquettes",       "desc":"3 projets différents en 1 semaine",  "type":"multi_proj",   "seuil":3,    "color":"#818CF8", "tier":2},
+    {"id":"sp_5proj",    "icon":"🌐", "titre":"Chef d'orchestre",       "desc":"5 projets différents en 1 semaine",  "type":"multi_proj",   "seuil":5,    "color":"#A78BFA", "tier":3},
+    {"id":"sp_早起",     "icon":"🐓", "titre":"Coq du matin",           "desc":"Début de journée avant 7h00",        "type":"early_start",  "seuil":7,    "color":"#FCD34D", "tier":2},
+    {"id":"sp_nuit",     "icon":"🦉", "titre":"Hibou de nuit",          "desc":"Fin de journée après 20h00",         "type":"late_end",     "seuil":20,   "color":"#818CF8", "tier":2},
+    {"id":"sp_5jours",   "icon":"📆", "titre":"5/5 Présent",            "desc":"Au moins 1h enregistrée les 5 jours","type":"sem_5jours",   "seuil":1,    "color":"#38BDF8", "tier":1},
+    {"id":"sp_theme",    "icon":"🎨", "titre":"Décorateur",             "desc":"A changé de thème au moins 1 fois",  "type":"theme_change", "seuil":1,    "color":"#F472B6", "tier":1},
 ]
 
-# Index rapide par ID
 _ACH_INDEX: dict[str, dict] = {a["id"]: a for a in ACHIEVEMENTS_DEF}
 TIER_LABELS = {1: "Bronze", 2: "Argent", 3: "Or"}
 TIER_COLORS = {1: "#CD7F32", 2: "#C0C0C0", 3: "#FFD700"}
 
 
 class AchievementStore:
-    """Persistance des achievements — lecture/écriture atomique avec cache en mémoire."""
     _cache: dict | None = None
 
     @classmethod
@@ -1474,7 +1865,6 @@ class AchievementStore:
 
     @classmethod
     def unlock(cls, aid: str) -> bool:
-        """Débloque un achievement. Retourne True si c'est nouveau."""
         data = cls._get()
         if aid in data: return False
         data[aid] = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -1490,8 +1880,7 @@ class AchievementStore:
     def invalidate(cls): cls._cache = None
 
 
-def compute_achievements(weeks: list) -> list[str]:
-    """Retourne la liste des IDs nouvellement débloqués."""
+def compute_achievements(weeks: list, settings: dict | None = None) -> list[str]:
     if not weeks: return []
     newly = []
     totals      = [w["total"] for w in weeks]
@@ -1500,31 +1889,61 @@ def compute_achievements(weeks: list) -> list[str]:
     total_global= sum(totals)
     nb_sem      = sum(1 for t in totals if t > 0)
 
-    # Streak consécutif (semaines ≥ 35h)
     streak = 0
     check = get_monday(datetime.today())
     week_map = {w["monday"].date(): w for w in weeks}
     while True:
         wk = week_map.get(check.date())
-        if wk and wk["total"] >= 35: streak += 1; check -= timedelta(weeks=1)
+        if wk and wk["total"] >= 40: streak += 1; check -= timedelta(weeks=1)
         else: break
+
+    # Calcul max journée et multi-projets
+    all_jour_hours = []
+    has_early_start = False
+    has_late_end = False
+    max_proj_in_week = 0
+    for monday in sorted(saved_weeks()):
+        try:
+            with open(save_file(monday),"r",encoding="utf-8") as f: d = json.load(f)
+            week_proj = set()
+            for j in JOURS:
+                for r in d.get("jours",{}).get(j,[]):
+                    h = calc_h(r.get("debut",""), r.get("fin",""))
+                    if h > 0: all_jour_hours.append(h)
+                    p = r.get("projet","").strip()
+                    if p: week_proj.add(p)
+                    # Early/late
+                    s = parse_heure(r.get("debut",""))
+                    e = parse_heure(r.get("fin",""))
+                    if s and s.hour < 7: has_early_start = True
+                    if e and e.hour >= 20: has_late_end = True
+            max_proj_in_week = max(max_proj_in_week, len(week_proj))
+        except: pass
 
     for ach in ACHIEVEMENTS_DEF:
         aid   = ach["id"]
         t     = ach["type"]
         seuil = ach["seuil"]
-        if AchievementStore.is_unlocked(aid): continue  # déjà acquis → skip
+        if AchievementStore.is_unlocked(aid): continue
         unlocked = False
-        if   t == "semaine":     unlocked = any(w["total"] >= seuil for w in weeks)
-        elif t == "serie":       unlocked = streak >= seuil
-        elif t == "annuel":      unlocked = annual >= seuil
-        elif t == "global":      unlocked = total_global >= seuil
-        elif t == "nb_sem":      unlocked = nb_sem >= seuil
+        if   t == "semaine":      unlocked = any(w["total"] >= seuil for w in weeks)
+        elif t == "serie":        unlocked = streak >= seuil
+        elif t == "annuel":       unlocked = annual >= seuil
+        elif t == "global":       unlocked = total_global >= seuil
+        elif t == "nb_sem":       unlocked = nb_sem >= seuil
         elif t == "jour_max":
             jour = ach.get("jour","")
             unlocked = any(w["jours"].get(jour,0) >= seuil for w in weeks)
-        elif t == "sem_parfaite":
+        elif t == "jour_single":  unlocked = any(h >= seuil for h in all_jour_hours)
+        elif t == "sem_parfaite": unlocked = any(all(w["jours"].get(j,0) >= seuil for j in JOURS) for w in weeks)
+        elif t == "multi_proj":   unlocked = max_proj_in_week >= seuil
+        elif t == "early_start":  unlocked = has_early_start
+        elif t == "late_end":     unlocked = has_late_end
+        elif t == "sem_5jours":
             unlocked = any(all(w["jours"].get(j,0) >= seuil for j in JOURS) for w in weeks)
+        elif t == "theme_change":
+            # Déclenché manuellement lors d'un changement de thème
+            unlocked = (settings or {}).get("_theme_ever_changed", False)
         if unlocked and AchievementStore.unlock(aid):
             newly.append(aid)
     return newly
@@ -1532,8 +1951,6 @@ def compute_achievements(weeks: list) -> list[str]:
 
 # ── Toast d'achievement animé ─────────────────────────────────────────────────
 class AchievementToast(QFrame):
-    """Notification toast animée, slide-in depuis le bas à droite, auto-disparaît après 4s."""
-
     def __init__(self, parent, ach: dict):
         super().__init__(parent)
         color  = ach.get("color", "#4F8EF7")
@@ -1570,7 +1987,6 @@ class AchievementToast(QFrame):
         desc_lbl.setStyleSheet(f"color:{TXT2}; font-size:10px; background:transparent;")
         txt.addWidget(desc_lbl); lay.addLayout(txt, 1)
 
-        # Barre timer visuelle
         self._prog_bar = QProgressBar(self)
         self._prog_bar.setGeometry(0, 83, 340, 5)
         self._prog_bar.setTextVisible(False); self._prog_bar.setValue(100)
@@ -1614,7 +2030,6 @@ class AchievementToast(QFrame):
 
 
 class ToastQueue:
-    """File d'attente de toasts — un à la fois, décalés verticalement si plusieurs."""
     def __init__(self, parent):
         self._parent = parent; self._queue: list[str] = []; self._showing = False
 
@@ -1637,19 +2052,19 @@ class ToastQueue:
 
 # ── AchievementsDialog ────────────────────────────────────────────────────────
 class AchievementsDialog(QDialog):
-    def __init__(self, parent, weeks: list):
+    def __init__(self, parent, weeks: list, total_global_h: float = 0.0):
         super().__init__(parent)
         self.setWindowTitle("Trophées — Groupe ADE")
-        self.resize(880, 720); self.setMinimumSize(700, 500)
+        self.resize(980, 780); self.setMinimumSize(700, 500)
         self.setStyleSheet(ss_base() + f"QDialog {{ background:{BG}; }}")
         self._weeks = weeks
         self._data  = AchievementStore.data()
+        self._total_h = total_global_h
         self._build()
 
     def _build(self):
         lay = QVBoxLayout(self); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
 
-        # Header
         hdr = QFrame(); hdr.setFixedHeight(68)
         hdr.setStyleSheet(f"background:{BG2}; border-bottom:1px solid {BORDER};")
         hl = QHBoxLayout(hdr); hl.setContentsMargins(22,0,22,0); hl.setSpacing(12)
@@ -1660,7 +2075,6 @@ class AchievementsDialog(QDialog):
         tc.addWidget(lbl("Trophées & Achievements",14,bold=True))
         tc.addWidget(lbl(f"{nb_unlocked} / {nb_total} débloqués  ·  {COPYRIGHT}",10,color=TXT2))
         hl.addLayout(tc); hl.addStretch()
-        # Barre progression globale
         pf = QFrame(); pf.setFixedWidth(160)
         pf.setStyleSheet(f"background:{CARD}; border:1px solid {BORDER}; border-radius:10px;")
         pfl = QVBoxLayout(pf); pfl.setContentsMargins(10,6,10,6); pfl.setSpacing(3)
@@ -1669,6 +2083,25 @@ class AchievementsDialog(QDialog):
         pg = QProgressBar(); pg.setValue(pct); pg.setFixedHeight(6); pg.setTextVisible(False)
         pg.setStyleSheet(f"QProgressBar {{ background:{BG}; border-radius:3px; border:none; }} QProgressBar::chunk {{ background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {ACC3},stop:1 {ACC}); border-radius:3px; }}")
         pfl.addWidget(pg); hl.addWidget(pf); lay.addWidget(hdr)
+
+        # Thèmes débloquables aperçu
+        themes_row = QWidget()
+        themes_row.setStyleSheet(f"background:{BG2}; border-bottom:1px solid {BORDER};")
+        trl2 = QHBoxLayout(themes_row); trl2.setContentsMargins(22,8,22,8); trl2.setSpacing(10)
+        trl2.addWidget(lbl("🎨 Thèmes débloquables :", 9, bold=True, color=TXT2))
+        for name, tdata in THEMES.items():
+            req = tdata.get("unlock_at", 0)
+            if req == 0: continue
+            done = self._total_h >= req
+            color = tdata["ACC"]
+            badge = QFrame(); badge.setFixedHeight(22)
+            badge.setStyleSheet(f"background:{color}22; border:1px solid {color if done else BORDER}; border-radius:6px;")
+            bl2 = QHBoxLayout(badge); bl2.setContentsMargins(6,0,6,0); bl2.setSpacing(4)
+            bl2.addWidget(lbl("✓" if done else "🔒", 8, color=color if done else TXT3))
+            bl2.addWidget(lbl(f"{name}  {req:.0f}h", 8, bold=done, color=color if done else TXT3))
+            trl2.addWidget(badge)
+        trl2.addStretch()
+        lay.addWidget(themes_row)
 
         # Compteurs par tier
         tier_row = QWidget(); tier_row.setStyleSheet(f"background:{BG2}; border-bottom:1px solid {BORDER};")
@@ -1681,14 +2114,12 @@ class AchievementsDialog(QDialog):
             dot = QFrame(); dot.setFixedSize(10,10); dot.setStyleSheet(f"background:{TIER_COLORS[tier]}; border-radius:5px;")
             tl2.addWidget(dot); tl2.addWidget(lbl(f"{TIER_LABELS[tier]}  {got}/{len(ids_tier)}",10,bold=True,color=TIER_COLORS[tier]))
             trl.addWidget(tc2)
-        # Bouton reset (admin) discret
         reset_btn = QPushButton("↺ Réinitialiser"); reset_btn.setFixedHeight(26)
         reset_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         reset_btn.setStyleSheet(f"QPushButton {{ background:transparent; color:{TXT3}; border:1px solid {BORDER}; border-radius:6px; font-size:9px; padding:0 8px; }} QPushButton:hover {{ color:{RED}; border-color:{RED}; }}")
         reset_btn.clicked.connect(self._reset_achievements); trl.addWidget(reset_btn)
         trl.addStretch(); lay.addWidget(tier_row)
 
-        # Scroll grille
         scroll = QScrollArea(); scroll.setWidgetResizable(True)
         scroll.setStyleSheet(f"QScrollArea {{ border:none; }} QWidget {{ background:{BG}; }}")
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -1696,18 +2127,22 @@ class AchievementsDialog(QDialog):
         cl.setContentsMargins(16,14,16,14); cl.setSpacing(16)
 
         categories = [
-            ("🗓️ Semaine",  [a for a in ACHIEVEMENTS_DEF if a["type"]=="semaine"]),
-            ("🔗 Séries",   [a for a in ACHIEVEMENTS_DEF if a["type"]=="serie"]),
-            ("📅 Annuel",   [a for a in ACHIEVEMENTS_DEF if a["type"]=="annuel"]),
-            ("🌍 Global",   [a for a in ACHIEVEMENTS_DEF if a["type"]=="global"]),
-            ("⭐ Spéciaux", [a for a in ACHIEVEMENTS_DEF if a["type"] in ("nb_sem","jour_max","sem_parfaite")]),
+            ("🗓️ Semaine",    [a for a in ACHIEVEMENTS_DEF if a["type"]=="semaine"]),
+            ("☀️ Journée",    [a for a in ACHIEVEMENTS_DEF if a["type"]=="jour_single"]),
+            ("🔗 Séries",     [a for a in ACHIEVEMENTS_DEF if a["type"]=="serie"]),
+            ("📅 Annuel",     [a for a in ACHIEVEMENTS_DEF if a["type"]=="annuel"]),
+            ("🌍 Global",     [a for a in ACHIEVEMENTS_DEF if a["type"]=="global"]),
+            ("⭐ Spéciaux",   [a for a in ACHIEVEMENTS_DEF if a["type"] in (
+                "nb_sem","jour_max","sem_parfaite","multi_proj",
+                "early_start","late_end","sem_5jours","theme_change")]),
         ]
         for cat_title, achs in categories:
+            if not achs: continue
             cl.addWidget(self._section_title(cat_title))
             grid = QWidget(); grid.setStyleSheet("background:transparent;")
-            gl = QHBoxLayout(grid); gl.setContentsMargins(0,0,0,0); gl.setSpacing(10)
-            gl.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            for ach in achs: gl.addWidget(self._ach_card(ach))
+            fl = FlowLayout(grid, h_spacing=10, v_spacing=10)
+            fl.setContentsMargins(0,0,0,0)
+            for ach in achs: fl.addWidget(self._ach_card(ach))
             cl.addWidget(grid)
         cl.addStretch(); scroll.setWidget(content); lay.addWidget(scroll)
 
@@ -1736,40 +2171,77 @@ class AchievementsDialog(QDialog):
         aid      = ach["id"]
         unlocked = aid in self._data
         color    = ach["color"] if unlocked else MUTED
-        tier     = ach.get("tier",1)
+        tier     = ach.get("tier", 1)
         tier_c   = TIER_COLORS[tier] if unlocked else MUTED
-        date_str = self._data.get(aid,"")
+        date_str = self._data.get(aid, "")
 
-        card = QFrame(); card.setFixedSize(152, 152)
-        border = f"border:2px solid {color};" if unlocked else f"border:1px solid {BORDER};"
-        bg     = f"background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 {color}18,stop:1 {color}08);" if unlocked else f"background:{CARD};"
-        card.setStyleSheet(f"QFrame {{ {bg} {border} border-radius:14px; }}")
+        card = QFrame(); card.setFixedSize(152, 156)
+        if unlocked:
+            card.setStyleSheet(f"""QFrame {{
+                background:qlineargradient(x1:0,y1:0,x2:1,y2:1,
+                    stop:0 {color}1A, stop:1 {color}06);
+                border:2px solid {color}; border-radius:16px;
+            }}""")
+        else:
+            card.setStyleSheet(f"""QFrame {{
+                background:{CARD}; border:1px solid {BORDER};
+                border-radius:16px;
+            }}""")
 
-        cl = QVBoxLayout(card); cl.setContentsMargins(10,10,10,10); cl.setSpacing(4)
+        cl = QVBoxLayout(card); cl.setContentsMargins(10,10,10,10); cl.setSpacing(5)
         cl.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
 
-        ico_frame = QFrame(); ico_frame.setFixedSize(48,48)
-        ico_frame.setStyleSheet(f"background:{color}22; border-radius:24px; border:{'2px solid '+color if unlocked else '1px solid '+BORDER};")
+        # Tier badge (coin haut-droit)
+        tier_badge = QLabel(("●" if tier==1 else "◆" if tier==2 else "★"))
+        tier_badge.setStyleSheet(f"color:{tier_c}; font-size:8px; background:transparent;")
+        tier_badge.setAlignment(Qt.AlignmentFlag.AlignRight)
+        cl.addWidget(tier_badge)
+
+        # Icône circulaire
+        ico_frame = QFrame(); ico_frame.setFixedSize(46, 46)
+        ico_frame.setStyleSheet(f"""QFrame {{
+            background:{color}20;
+            border-radius:23px;
+            border:{"2px solid "+color if unlocked else "1px solid "+BORDER};
+        }}""")
         ifl = QHBoxLayout(ico_frame); ifl.setContentsMargins(0,0,0,0)
         ico_lbl = QLabel(ach["icon"] if unlocked else "🔒")
         ico_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ico_lbl.setStyleSheet(f"font-size:{'20' if unlocked else '16'}px; background:transparent; border:none;")
-        ifl.addWidget(ico_lbl); cl.addWidget(ico_frame, 0, Qt.AlignmentFlag.AlignHCenter)
+        ico_lbl.setStyleSheet(f"font-size:{'20' if unlocked else '15'}px; background:transparent; border:none;")
+        ifl.addWidget(ico_lbl)
+        cl.addWidget(ico_frame, 0, Qt.AlignmentFlag.AlignHCenter)
 
+        # Titre
         titre_lbl = QLabel(ach["titre"]); titre_lbl.setWordWrap(True)
         titre_lbl.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        titre_lbl.setStyleSheet(f"color:{TXT if unlocked else TXT3}; font-size:10px; font-weight:{'800' if unlocked else '600'}; background:transparent;")
+        titre_lbl.setStyleSheet(
+            f"color:{TXT if unlocked else TXT3}; font-size:9px; "
+            f"font-weight:{'800' if unlocked else '500'}; background:transparent;")
         cl.addWidget(titre_lbl)
 
+        # Description
         desc_lbl = QLabel(ach["desc"]); desc_lbl.setWordWrap(True)
         desc_lbl.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        desc_lbl.setStyleSheet(f"color:{TXT3}; font-size:8px; background:transparent;")
+        desc_lbl.setStyleSheet(f"color:{TXT3}; font-size:7px; background:transparent;")
         cl.addWidget(desc_lbl)
 
+        # Date débloquée ou label tier
         if unlocked:
-            bottom_text = f"✓ {date_str[:10]}" if date_str else f"● {TIER_LABELS[tier]}"
-            b_lbl = QLabel(bottom_text); b_lbl.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-            b_lbl.setStyleSheet(f"color:{color if date_str else tier_c}; font-size:8px; font-weight:700; background:transparent;")
+            if date_str and len(date_str) >= 10:
+                try:
+                    from datetime import date as _date
+                    d = _date.fromisoformat(date_str[:10])
+                    date_fmt = f"{d.day} {MOIS_FR[d.month]} {d.year}"
+                except Exception:
+                    date_fmt = date_str[:10]
+                b_text = f"✓ {date_fmt}"
+                b_col  = color
+            else:
+                b_text = f"● {TIER_LABELS[tier]}"
+                b_col  = tier_c
+            b_lbl = QLabel(b_text); b_lbl.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            b_lbl.setStyleSheet(
+                f"color:{b_col}; font-size:7px; font-weight:700; background:transparent;")
             cl.addWidget(b_lbl)
 
         return card
@@ -1818,6 +2290,8 @@ class MainWindow(QMainWindow):
         self._dirty    = False
         self._last_pdf = ""
         self._toast_queue: ToastQueue | None = None
+        self._total_global_h = 0.0
+        self._nb_trophees    = 0
 
         AutoCompleteRegistry.load_all()
         self._build()
@@ -1828,8 +2302,19 @@ class MainWindow(QMainWindow):
         self.autosave_timer.timeout.connect(self._autosave)
         self.autosave_timer.start(30_000)
         QTimer.singleShot(2000, self._start_update_check)
+        QTimer.singleShot(500, self._compute_global_total)
 
     def closeEvent(self, event): self._save(silent=True); event.accept()
+
+    def _compute_global_total(self):
+        try:
+            weeks = load_all_weeks()
+            self._total_global_h = sum(w["total"] for w in weeks)
+            self._nb_trophees    = len(AchievementStore.data())
+        except:
+            self._total_global_h = 0.0
+            self._nb_trophees    = 0
+        self._update_xp_widget()
 
     def _build(self):
         central = QWidget(); self.setCentralWidget(central)
@@ -1849,7 +2334,6 @@ class MainWindow(QMainWindow):
         lay = QVBoxLayout(sb); lay.setContentsMargins(0,0,0,0); lay.setSpacing(0)
         lay.addWidget(LogoWidget()); lay.addWidget(h_sep())
 
-        # Navigation semaine
         nav = QWidget(); nav.setStyleSheet("background:transparent;")
         nl = QVBoxLayout(nav); nl.setContentsMargins(10,10,10,8); nl.setSpacing(6)
         nl.addWidget(section_lbl("SEMAINE"))
@@ -1871,10 +2355,11 @@ class MainWindow(QMainWindow):
         today_btn.clicked.connect(self._today); nl.addWidget(today_btn)
         lay.addWidget(nav); lay.addWidget(h_sep())
 
-        # Résumé semaine
         res = QWidget(); res.setStyleSheet("background:transparent;")
         rl2 = QVBoxLayout(res); rl2.setContentsMargins(12,10,12,10); rl2.setSpacing(6)
         rl2.addWidget(section_lbl("RÉSUMÉ"))
+
+        # ── Total semaine ──────────────────────────────────────────────────────
         tot_frame = QFrame()
         tot_frame.setStyleSheet(f"""
             background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 {ACCD},stop:1 {BG3});
@@ -1890,14 +2375,56 @@ class MainWindow(QMainWindow):
             QProgressBar::chunk {{ background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {ACC3},stop:1 {ACC}); border-radius:2px; }}
         """)
         tfl.addWidget(self.prog); rl2.addWidget(tot_frame)
-
-        # Mini-streak indicator dans sidebar
         self._streak_lbl = lbl("",9,color=TXT3)
         self._streak_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         rl2.addWidget(self._streak_lbl)
+
+        # ── XP / Niveau ────────────────────────────────────────────────────────
+        xp_frame = QFrame(); xp_frame.setObjectName("xp_frame")
+        xp_frame.setStyleSheet(f"""
+            QFrame#xp_frame {{
+                background:{BG3}; border:1px solid {BORDER2};
+                border-radius:12px;
+            }}
+        """)
+        xfl = QVBoxLayout(xp_frame); xfl.setContentsMargins(12,9,12,9); xfl.setSpacing(4)
+
+        # Ligne titre : badge niveau + titre
+        xp_top = QHBoxLayout(); xp_top.setSpacing(6)
+        self._xp_lvl_badge = QLabel("Nv.1")
+        self._xp_lvl_badge.setFixedSize(34, 20)
+        self._xp_lvl_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._xp_lvl_badge.setStyleSheet(f"""
+            background:{ACC3}; color:white; border-radius:6px;
+            font-size:9px; font-weight:800;
+        """)
+        self._xp_title_lbl = lbl("Stagiaire", 10, bold=True, color=ACC)
+        xp_top.addWidget(self._xp_lvl_badge)
+        xp_top.addWidget(self._xp_title_lbl, 1)
+        self._xp_pts_lbl = lbl("0 XP", 8, color=TXT3)
+        xp_top.addWidget(self._xp_pts_lbl)
+        xfl.addLayout(xp_top)
+
+        # Barre XP
+        self._xp_bar = QProgressBar(); self._xp_bar.setFixedHeight(6)
+        self._xp_bar.setTextVisible(False); self._xp_bar.setValue(0)
+        self._xp_bar.setStyleSheet(f"""
+            QProgressBar {{ background:{BG}; border-radius:3px; border:none; }}
+            QProgressBar::chunk {{
+                background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {ACC3},stop:1 {ACC});
+                border-radius:3px;
+            }}
+        """)
+        xfl.addWidget(self._xp_bar)
+
+        # Ligne prochain niveau
+        self._xp_next_lbl = lbl("", 8, color=TXT3)
+        self._xp_next_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+        xfl.addWidget(self._xp_next_lbl)
+
+        rl2.addWidget(xp_frame)
         lay.addWidget(res); lay.addWidget(h_sep())
 
-        # Actions
         act = QWidget(); act.setStyleSheet("background:transparent;")
         al = QVBoxLayout(act); al.setContentsMargins(10,8,10,6); al.setSpacing(3)
         al.addWidget(section_lbl("ACTIONS"))
@@ -1916,7 +2443,6 @@ class MainWindow(QMainWindow):
         self.send_mail_btn.clicked.connect(self._envoyer_courriel); al.addWidget(self.send_mail_btn)
         lay.addWidget(act); lay.addWidget(h_sep())
 
-        # Transfert
         tr = QWidget(); tr.setStyleSheet("background:transparent;")
         tl2 = QVBoxLayout(tr); tl2.setContentsMargins(10,8,10,6); tl2.setSpacing(3)
         tl2.addWidget(section_lbl("TRANSFERT"))
@@ -1925,7 +2451,6 @@ class MainWindow(QMainWindow):
             b = sidebar_btn(text); b.clicked.connect(cmd); tl2.addWidget(b)
         lay.addWidget(tr); lay.addStretch()
 
-        # Update frame
         self.update_frame = QFrame()
         upd_bg = "#1A2E10" if not IS_LIGHT else "#D1FAE5"
         self.update_frame.setStyleSheet(f"""
@@ -1958,11 +2483,47 @@ class MainWindow(QMainWindow):
         fl.addWidget(lbl(COPYRIGHT,8,color=TXT3)); lay.addWidget(foot)
         return sb
 
+    def _update_xp_widget(self):
+        """Met à jour le widget XP/niveau dans la sidebar."""
+        if not hasattr(self, "_xp_bar"): return
+        info = get_xp_info(self._total_global_h, self._nb_trophees)
+        c = info["color"]
+        # Badge niveau
+        self._xp_lvl_badge.setText(f"Nv.{info['level']}")
+        self._xp_lvl_badge.setStyleSheet(f"""
+            background:{c}; color:{'#0A0A0A' if info['level']==10 else 'white'};
+            border-radius:6px; font-size:9px; font-weight:800;
+        """)
+        # Titre
+        self._xp_title_lbl.setText(info["title"])
+        self._xp_title_lbl.setStyleSheet(f"color:{c}; font-size:10px; font-weight:700; background:transparent;")
+        # Points XP
+        self._xp_pts_lbl.setText(f"{info['xp']} XP")
+        # Barre progression
+        self._xp_bar.setValue(info["pct"])
+        self._xp_bar.setStyleSheet(f"""
+            QProgressBar {{ background:{BG}; border-radius:3px; border:none; }}
+            QProgressBar::chunk {{
+                background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {c}AA,stop:1 {c});
+                border-radius:3px;
+            }}
+        """)
+        # Prochain niveau
+        if info["is_max"]:
+            self._xp_next_lbl.setText("★ Niveau max !")
+            self._xp_next_lbl.setStyleSheet(f"color:{c}; font-size:8px; font-weight:700; background:transparent;")
+        else:
+            remaining = info["xp_need"] - info["xp_cur"]
+            self._xp_next_lbl.setText(f"{remaining} XP → {info['next_title']}")
+            self._xp_next_lbl.setStyleSheet(f"color:{TXT3}; font-size:8px; background:transparent;")
+
     def _nav_btn(self, text):
         b = QPushButton(text); b.setFixedSize(28,28); b.setCursor(Qt.CursorShape.PointingHandCursor)
         b.setStyleSheet(f"""
-            QPushButton {{ background:{CARD}; color:{TXT2}; border:1px solid {BORDER}; border-radius:7px; font-size:11px; }}
-            QPushButton:hover {{ background:{CARD2}; color:{TXT}; border-color:{ACC3}; }}
+            QPushButton {{ background:{CARD}; color:{TXT2}; border:1px solid {BORDER}; border-radius:7px;
+                           font-size:10px; font-weight:600; }}
+            QPushButton:hover {{ background:{ACC3}; color:white; border-color:{ACC3}; }}
+            QPushButton:pressed {{ background:{ACCD}; }}
         """)
         return b
 
@@ -2030,21 +2591,28 @@ class MainWindow(QMainWindow):
 
     def _recalc_week(self):
         total = sum(self.day_cards[j].get_total() for j in JOURS)
-        txt = fmt_h(total) if total else "0h"
-        self.week_total_lbl.setText(f"Total : {txt}"); self.total_big.setText(txt)
-        col = GREEN if total>=35 else ACC if total>=15 else AMBER if total>0 else (ACC2 if not IS_LIGHT else ACC)
+        txt   = fmt_h(total) if total else "0h"
+        pct   = min(int(total / OBJECTIF_H * 100), 100)
+        if   total >= OBJECTIF_H: col, badge_bg, badge_bd = GREEN,  ("#0A2218" if not IS_LIGHT else "#D1FAE5"), GREEN2
+        elif total >= 20:         col, badge_bg, badge_bd = ACC,    ACCD, ACC3
+        elif total > 0:           col, badge_bg, badge_bd = AMBER,  ("#211A08" if not IS_LIGHT else "#FEF3C7"), "#92700A"
+        else:                     col, badge_bg, badge_bd = TXT3,   BG2, BORDER
+        self.week_total_lbl.setText(f"Total : {txt}")
+        self.week_total_lbl.setStyleSheet(
+            f"color:{col}; font-size:14px; font-weight:700;"
+            f"background:{badge_bg}; border:1px solid {badge_bd}; border-radius:9px; padding:3px 14px;")
+        self.total_big.setText(txt)
         self.total_big.setStyleSheet(f"color:{col}; font-family:'Segoe UI'; font-size:28px; font-weight:800; background:transparent;")
-        self.prog.setValue(min(int(total/40*100),100))
+        self.prog.setValue(pct)
 
     def _update_streak_display(self):
-        """Met à jour l'indicateur de streak dans la sidebar."""
         try:
             weeks = load_all_weeks()
             streak = 0; check = get_monday(datetime.today())
             week_map = {w["monday"].date(): w for w in weeks}
             while True:
                 wk = week_map.get(check.date())
-                if wk and wk["total"] >= 35: streak += 1; check -= timedelta(weeks=1)
+                if wk and wk["total"] >= 40: streak += 1; check -= timedelta(weeks=1)
                 else: break
             if streak >= 2:
                 icon = "🔥" if streak >= 4 else "✅"
@@ -2086,26 +2654,34 @@ class MainWindow(QMainWindow):
     def _trophees(self):
         self._save(silent=True)
         weeks = load_all_weeks()
-        AchievementStore.invalidate()  # rafraîchir cache
-        AchievementsDialog(self, weeks).exec()
+        self._total_global_h = sum(w["total"] for w in weeks)
+        AchievementStore.invalidate()
+        AchievementsDialog(self, weeks, self._total_global_h).exec()
 
     def _check_achievements(self):
-        """Vérifie et affiche les nouveaux achievements débloqués en arrière-plan."""
         if self._toast_queue is None: return
         try:
             weeks = load_all_weeks()
-            for aid in compute_achievements(weeks):
+            self._total_global_h = sum(w["total"] for w in weeks)
+            for aid in compute_achievements(weeks, self.settings):
                 self._toast_queue.push(aid)
             self._update_streak_display()
         except: pass
 
     def _parametres(self):
-        dlg = ParamDialog(self, self.settings)
+        self._compute_global_total()
+        dlg = ParamDialog(self, self.settings, self._total_global_h)
         dlg.theme_changed.connect(self._apply_theme_live)
         dlg.saved.connect(self._apply_settings)
         old_theme = self.settings.get("theme","Dark Navy")
         if dlg.exec() != QDialog.DialogCode.Accepted:
             self._apply_theme_live(old_theme)
+        else:
+            # Marquer qu'un thème a été changé pour le trophée "Décorateur"
+            if self.settings.get("theme","Dark Navy") != old_theme:
+                self.settings["_theme_ever_changed"] = True
+                write_settings(self.settings)
+                QTimer.singleShot(300, self._check_achievements)
 
     def _apply_theme_live(self, theme_name):
         apply_theme(theme_name)
