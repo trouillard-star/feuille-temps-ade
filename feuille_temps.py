@@ -28,7 +28,7 @@ os.makedirs(SAVE_PATH, exist_ok=True)
 
 APP_NAME    = "Groupe ADE"
 APP_SUB     = "Feuille de Temps"
-APP_VERSION = "v3.11"
+APP_VERSION = "v3.12"
 COPYRIGHT   = "© 2026 Thierry Rouillard"
 DEV_CREDIT  = "Développé par Thierry Rouillard"
 
@@ -1210,7 +1210,8 @@ class EnvoiDialog(QDialog):
             if sys.platform == "win32":
                 os.startfile(mailto_uri)
                 if self.pdf_path and os.path.exists(self.pdf_path):
-                    subprocess.Popen(["explorer", "/select,", self.pdf_path], creationflags=subprocess.CREATE_NO_WINDOW)
+                    subprocess.Popen(f'explorer /select,"{self.pdf_path}"',
+                                     shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
             elif sys.platform == "darwin":
                 subprocess.Popen(["open", mailto_uri])
                 if self.pdf_path and os.path.exists(self.pdf_path):
@@ -2302,7 +2303,8 @@ class MainWindow(QMainWindow):
         self.autosave_timer.timeout.connect(self._autosave)
         self.autosave_timer.start(30_000)
         QTimer.singleShot(2000, self._start_update_check)
-        QTimer.singleShot(500, self._compute_global_total)
+        QTimer.singleShot(500,  self._compute_global_total)
+        QTimer.singleShot(1200, self._update_xp_widget)  # rafraîchi après build complet
 
     def closeEvent(self, event): self._save(silent=True); event.accept()
 
@@ -2310,8 +2312,9 @@ class MainWindow(QMainWindow):
         try:
             weeks = load_all_weeks()
             self._total_global_h = sum(w["total"] for w in weeks)
-            self._nb_trophees    = len(AchievementStore.data())
-        except:
+            AchievementStore.invalidate()          # relit le fichier à jour
+            self._nb_trophees = len(AchievementStore.data())
+        except Exception:
             self._total_global_h = 0.0
             self._nb_trophees    = 0
         self._update_xp_widget()
@@ -2485,7 +2488,9 @@ class MainWindow(QMainWindow):
 
     def _update_xp_widget(self):
         """Met à jour le widget XP/niveau dans la sidebar."""
-        if not hasattr(self, "_xp_bar"): return
+        if not hasattr(self, "_xp_bar") or self._xp_bar is None: return
+        try: self._xp_bar.value()  # teste que le widget est vivant
+        except RuntimeError: return
         info = get_xp_info(self._total_global_h, self._nb_trophees)
         c = info["color"]
         # Badge niveau
@@ -2726,6 +2731,7 @@ class MainWindow(QMainWindow):
         self.autosave_timer.start(30_000)
         self.status_bar.set("✓ Thème appliqué", GREEN)
         self._update_streak_display()
+        QTimer.singleShot(100, self._compute_global_total)  # restaure XP après rebuild
 
     def _apply_settings(self, s):
         self.settings = s; write_settings(self.settings)
