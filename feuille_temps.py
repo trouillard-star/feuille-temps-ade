@@ -28,7 +28,7 @@ os.makedirs(SAVE_PATH, exist_ok=True)
 
 APP_NAME    = "Groupe ADE"
 APP_SUB     = "Feuille de Temps"
-APP_VERSION = "v3.12"
+APP_VERSION = "v3.13"
 COPYRIGHT   = "© 2026 Thierry Rouillard"
 DEV_CREDIT  = "Développé par Thierry Rouillard"
 
@@ -2838,72 +2838,180 @@ class MainWindow(QMainWindow):
         if rep == QMessageBox.StandardButton.Yes: os.startfile(dest)
 
     def _build_pdf(self, dest):
-        from reportlab.pdfgen import canvas as rl
-        from reportlab.lib.pagesizes import letter
-        c = rl.Canvas(dest, pagesize=letter); PW, PH = letter
+            from reportlab.pdfgen import canvas as rl
+            from reportlab.lib.pagesizes import letter
+            c = rl.Canvas(dest, pagesize=letter); PW, PH = letter
 
-        def bg(): c.setFillColorRGB(0.031,0.047,0.078); c.rect(0,0,PW,PH,fill=1,stroke=0)
+            # ── Palette claire ──────────────────────────────────────────
+            def bg():
+                c.setFillColorRGB(1.0, 1.0, 1.0)
+                c.rect(0, 0, PW, PH, fill=1, stroke=0)
 
-        bg()
-        c.setFillColorRGB(0.165,0.369,0.969); c.rect(0,PH-72,PW,72,fill=1,stroke=0)
-        c.setFillColorRGB(0.102,0.247,0.698); c.rect(0,PH-72,6,72,fill=1,stroke=0)
-        c.setFillColorRGB(0.941,0.957,1.0); c.setFont("Helvetica-Bold",22)
-        c.drawString(24,PH-40,"Groupe ADE")
-        c.setFillColorRGB(0.8,0.87,1.0); c.setFont("Helvetica",11)
-        c.drawString(24,PH-58,f"Feuille de Temps  ·  {APP_VERSION}")
-        c.setFillColorRGB(0.941,0.957,1.0)
-        c.drawRightString(PW-24,PH-36,f"Semaine : {week_label(self.monday)}")
-        c.drawRightString(PW-24,PH-54,f"Employé : {self.emp_entry.text()}")
-        c.setFillColorRGB(0.051,0.078,0.129); c.rect(0,PH-92,PW,20,fill=1,stroke=0)
-        c.setFillColorRGB(0.42,0.50,0.67); c.setFont("Helvetica",8)
-        c.drawString(24,PH-85,f"Exporté le {datetime.now().strftime('%d/%m/%Y à %H:%M')}")
-        c.drawRightString(PW-24,PH-85,f"{DEV_CREDIT}  ·  {COPYRIGHT}")
+            bg()
 
-        y = PH-108; week_tot = 0.0
-        for jour in JOURS:
-            card = self.day_cards[jour]
-            rows = [r for r in card.rows if r.start.text() or r.end.text()]
-            if y < 130: c.showPage(); bg(); y = PH-30
-            c.setFillColorRGB(0.082,0.110,0.180); c.rect(20,y-20,PW-40,22,fill=1,stroke=0)
-            c.setFillColorRGB(0.165,0.369,0.969); c.rect(20,y-20,5,22,fill=1,stroke=0)
-            c.setFillColorRGB(0.941,0.957,1.0); c.setFont("Helvetica-Bold",10)
-            c.drawString(32,y-12,jour.upper())
-            day_tot = card.get_total(); week_tot += day_tot
-            c.setFillColorRGB(0.165,0.369,0.969)
-            c.drawRightString(PW-24,y-12,f"Total : {fmt_h(day_tot)}")
-            y -= 26
-            if not rows:
-                c.setFillColorRGB(0.42,0.50,0.67); c.setFont("Helvetica-Oblique",9)
-                c.drawString(36,y-8,"Aucune entrée"); y -= 18; continue
-            c.setFillColorRGB(0.063,0.086,0.141); c.rect(20,y-15,PW-40,17,fill=1,stroke=0)
-            c.setFillColorRGB(0.42,0.50,0.67); c.setFont("Helvetica-Bold",8)
-            for txt, x in [("DATE",28),("DÉBUT",118),("FIN",166),("TÂCHE",214),("PROJET",310),("CLIENT / DESC",400),("DURÉE",PW-56)]:
-                c.drawString(x,y-8,txt)
-            y -= 17
-            for i,r in enumerate(rows):
-                if y < 40: c.showPage(); bg(); y = PH-30
-                rb = 0.075 if i%2==0 else 0.094
-                c.setFillColorRGB(rb,rb+0.016,rb+0.038); c.rect(20,y-13,PW-40,15,fill=1,stroke=0)
-                c.setFillColorRGB(0.878,0.906,1.0); c.setFont("Helvetica",9)
-                c.drawString(28,  y-7, r.date_lbl.text())
-                c.drawString(118, y-7, r.start.text())
-                c.drawString(166, y-7, r.end.text())
-                c.drawString(214, y-7, r.tache.text()[:18])
-                c.drawString(310, y-7, r.projet.text()[:16])
-                c.drawString(400, y-7, r.desc.text()[:22])
-                c.setFillColorRGB(0.165,0.369,0.969)
-                c.drawRightString(PW-24,y-7,fmt_h(calc_h(r.start.text(),r.end.text())))
-                y -= 15
-            y -= 6
-        y -= 4
-        c.setFillColorRGB(0.165,0.369,0.969); c.rect(20,y-26,PW-40,30,fill=1,stroke=0)
-        c.setFillColorRGB(1,1,1); c.setFont("Helvetica-Bold",12)
-        c.drawString(28,y-15,"TOTAL DE LA SEMAINE"); c.drawRightString(PW-24,y-15,fmt_h(week_tot))
-        c.setFillColorRGB(0.031,0.047,0.078); c.rect(0,0,PW,26,fill=1,stroke=0)
-        c.setFillColorRGB(0.263,0.322,0.451); c.setFont("Helvetica",7.5)
-        c.drawString(24,8,f"Groupe ADE  ·  {APP_VERSION}  ·  {DEV_CREDIT}")
-        c.drawRightString(PW-24,8,COPYRIGHT)
-        c.save()
+            # Bandeau entête bleu ADE sobre
+            c.setFillColorRGB(0.129, 0.290, 0.729)
+            c.rect(0, PH-68, PW, 68, fill=1, stroke=0)
+            c.setFillColorRGB(0.051, 0.184, 0.604)
+            c.rect(0, PH-68, 5, 68, fill=1, stroke=0)
+
+            # Titre blanc
+            c.setFillColorRGB(1.0, 1.0, 1.0)
+            c.setFont("Helvetica-Bold", 20)
+            c.drawString(22, PH-36, "Groupe ADE")
+            c.setFont("Helvetica", 10)
+            c.setFillColorRGB(0.78, 0.87, 1.0)
+            c.drawString(22, PH-53, f"Feuille de Temps  ·  {APP_VERSION}")
+
+            c.setFillColorRGB(1.0, 1.0, 1.0)
+            c.setFont("Helvetica-Bold", 10)
+            c.drawRightString(PW-22, PH-34, week_label(self.monday))
+            c.setFont("Helvetica", 10)
+            c.setFillColorRGB(0.78, 0.87, 1.0)
+            c.drawRightString(PW-22, PH-50, f"Employé : {self.emp_entry.text()}")
+
+            # Sous-bandeau gris très clair
+            c.setFillColorRGB(0.945, 0.949, 0.957)
+            c.rect(0, PH-84, PW, 16, fill=1, stroke=0)
+            c.setFillColorRGB(0.42, 0.44, 0.50)
+            c.setFont("Helvetica", 7.5)
+            c.drawString(22, PH-78, f"Exporté le {datetime.now().strftime('%d/%m/%Y à %H:%M')}")
+            c.drawRightString(PW-22, PH-78, f"{DEV_CREDIT}  ·  {COPYRIGHT}")
+
+            c.setStrokeColorRGB(0.82, 0.85, 0.91)
+            c.setLineWidth(0.5)
+            c.line(20, PH-86, PW-20, PH-86)
+
+            y = PH-104; week_tot = 0.0
+
+            for jour in JOURS:
+                card = self.day_cards[jour]
+                rows = [r for r in card.rows if r.start.text() or r.end.text()]
+
+                if y < 130:
+                    # Pied de page
+                    c.setFillColorRGB(0.945, 0.949, 0.957)
+                    c.rect(0, 0, PW, 22, fill=1, stroke=0)
+                    c.setFillColorRGB(0.50, 0.52, 0.58)
+                    c.setFont("Helvetica", 7.5)
+                    c.drawString(22, 7, f"Groupe ADE  ·  {APP_VERSION}  ·  {DEV_CREDIT}")
+                    c.drawRightString(PW-22, 7, COPYRIGHT)
+                    c.showPage(); bg()
+                    # En-tête allégé pages suivantes
+                    c.setFillColorRGB(0.129, 0.290, 0.729)
+                    c.rect(0, PH-32, PW, 32, fill=1, stroke=0)
+                    c.setFillColorRGB(1.0, 1.0, 1.0)
+                    c.setFont("Helvetica-Bold", 11)
+                    c.drawString(22, PH-19, "Groupe ADE  —  Feuille de Temps (suite)")
+                    c.setFont("Helvetica", 9)
+                    c.setFillColorRGB(0.78, 0.87, 1.0)
+                    c.drawRightString(PW-22, PH-19, week_label(self.monday))
+                    c.setStrokeColorRGB(0.82, 0.85, 0.91); c.setLineWidth(0.5)
+                    c.line(20, PH-34, PW-20, PH-34)
+                    y = PH-52
+
+                # En-tête jour : fond gris doux + pastille bleue
+                c.setFillColorRGB(0.933, 0.941, 0.961)
+                c.rect(20, y-22, PW-40, 24, fill=1, stroke=0)
+                c.setFillColorRGB(0.129, 0.290, 0.729)
+                c.rect(20, y-22, 4, 24, fill=1, stroke=0)
+                c.setFont("Helvetica-Bold", 10)
+                c.drawString(32, y-12, jour.upper())
+                day_tot = card.get_total(); week_tot += day_tot
+                c.drawRightString(PW-24, y-12, f"Total : {fmt_h(day_tot)}" if day_tot else "Total : –")
+                c.setStrokeColorRGB(0.75, 0.80, 0.90); c.setLineWidth(0.4)
+                c.line(20, y-22, PW-20, y-22)
+                y -= 28
+
+                if not rows:
+                    c.setFillColorRGB(0.60, 0.62, 0.68)
+                    c.setFont("Helvetica-Oblique", 9)
+                    c.drawString(36, y-8, "Aucune entrée")
+                    y -= 20
+                    c.setStrokeColorRGB(0.88, 0.90, 0.94); c.setLineWidth(0.3)
+                    c.line(20, y-2, PW-20, y-2); y -= 8
+                    continue
+
+                # En-tête colonnes
+                c.setFillColorRGB(0.965, 0.969, 0.976)
+                c.rect(20, y-16, PW-40, 18, fill=1, stroke=0)
+                c.setFillColorRGB(0.40, 0.43, 0.52)
+                c.setFont("Helvetica-Bold", 7.5)
+                for txt, x in [("DATE",28),("DÉBUT",118),("FIN",162),("TÂCHE",210),("PROJET",306),("CLIENT / DESC",396),("DURÉE",PW-52)]:
+                    c.drawString(x, y-9, txt)
+                c.setStrokeColorRGB(0.80, 0.84, 0.91); c.setLineWidth(0.3)
+                c.line(20, y-16, PW-20, y-16)
+                y -= 18
+
+                for i, r in enumerate(rows):
+                    if y < 40:
+                        c.setFillColorRGB(0.945, 0.949, 0.957)
+                        c.rect(0, 0, PW, 22, fill=1, stroke=0)
+                        c.setFillColorRGB(0.50, 0.52, 0.58)
+                        c.setFont("Helvetica", 7.5)
+                        c.drawString(22, 7, f"Groupe ADE  ·  {APP_VERSION}  ·  {DEV_CREDIT}")
+                        c.drawRightString(PW-22, 7, COPYRIGHT)
+                        c.showPage(); bg()
+                        c.setFillColorRGB(0.129, 0.290, 0.729)
+                        c.rect(0, PH-32, PW, 32, fill=1, stroke=0)
+                        c.setFillColorRGB(1.0, 1.0, 1.0)
+                        c.setFont("Helvetica-Bold", 11)
+                        c.drawString(22, PH-19, "Groupe ADE  —  Feuille de Temps (suite)")
+                        c.setFont("Helvetica", 9)
+                        c.setFillColorRGB(0.78, 0.87, 1.0)
+                        c.drawRightString(PW-22, PH-19, week_label(self.monday))
+                        c.setStrokeColorRGB(0.82, 0.85, 0.91); c.setLineWidth(0.5)
+                        c.line(20, PH-34, PW-20, PH-34)
+                        y = PH-52
+
+                    # Zébrage blanc / gris très clair
+                    if i % 2 == 0:
+                        c.setFillColorRGB(1.0, 1.0, 1.0)
+                    else:
+                        c.setFillColorRGB(0.973, 0.976, 0.984)
+                    c.rect(20, y-14, PW-40, 16, fill=1, stroke=0)
+
+                    # Texte quasi-noir
+                    c.setFillColorRGB(0.13, 0.15, 0.20)
+                    c.setFont("Helvetica", 8.5)
+                    c.drawString(28,   y-7, r.date_lbl.text())
+                    c.drawString(118,  y-7, r.start.text())
+                    c.drawString(162,  y-7, r.end.text())
+                    c.drawString(210,  y-7, r.tache.text()[:18])
+                    c.drawString(306,  y-7, r.projet.text()[:16])
+                    c.drawString(396,  y-7, r.desc.text()[:22])
+
+                    # Durée en bleu
+                    c.setFillColorRGB(0.129, 0.290, 0.729)
+                    c.setFont("Helvetica-Bold", 8.5)
+                    c.drawRightString(PW-24, y-7, fmt_h(calc_h(r.start.text(), r.end.text())))
+
+                    c.setStrokeColorRGB(0.88, 0.90, 0.94); c.setLineWidth(0.2)
+                    c.line(20, y-14, PW-20, y-14)
+                    y -= 16
+
+                # Séparation entre jours
+                c.setStrokeColorRGB(0.70, 0.75, 0.85); c.setLineWidth(0.5)
+                c.line(20, y-4, PW-20, y-4)
+                y -= 14
+
+            # Bandeau total semaine
+            y -= 4
+            c.setFillColorRGB(0.129, 0.290, 0.729)
+            c.rect(20, y-28, PW-40, 32, fill=1, stroke=0)
+            c.setFillColorRGB(1.0, 1.0, 1.0)
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(28, y-16, "TOTAL DE LA SEMAINE")
+            c.drawRightString(PW-24, y-16, fmt_h(week_tot))
+
+            # Pied de page dernière page
+            c.setFillColorRGB(0.945, 0.949, 0.957)
+            c.rect(0, 0, PW, 22, fill=1, stroke=0)
+            c.setFillColorRGB(0.50, 0.52, 0.58)
+            c.setFont("Helvetica", 7.5)
+            c.drawString(22, 7, f"Groupe ADE  ·  {APP_VERSION}  ·  {DEV_CREDIT}")
+            c.drawRightString(PW-22, 7, COPYRIGHT)
+            c.save()
 
 # ── Lancement ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
