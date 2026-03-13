@@ -2817,7 +2817,7 @@ class MainWindow(QMainWindow):
         self.update_btn.setEnabled(True); self.update_btn.setText("⬇  Réessayer"); self.update_prog.hide()
         QMessageBox.warning(self,"Erreur de mise à jour",f"Impossible de télécharger :\n{msg}\n\nVérifie ta connexion réseau.")
 
-    # ── PDF (toujours Dark Navy ADE) ──────────────────────────────────────────
+    # ── PDF (Light pour Josée) ──────────────────────────────────────────
     def _generate_pdf_silent(self):
         try: from reportlab.pdfgen import canvas as rl  # noqa
         except ImportError: return ""
